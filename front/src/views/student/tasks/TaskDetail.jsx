@@ -93,7 +93,7 @@ const StudentTestCard = ({ index, question, selected, onSelect, locked }) => {
   );
 };
 
-// ─── Student MATCHING game (SVG lines, no reset) ──────────────────────────────
+// ─── Student MATCHING game (lock-in all pairs, then reveal result) ───────────
 
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
@@ -111,9 +111,11 @@ const StudentMatchingGame = ({ questions, onComplete }) => {
   const [rightItems] = useState(() =>
     shuffle(pairs.map((p) => ({ id: p.id, text: p.right })))
   );
+
+  // attempts: Map<leftId, rightId> — finalized (locked-in) pairs
+  const [attempts, setAttempts] = useState(new Map());
+  const [usedRights, setUsedRights] = useState(new Set());
   const [selectedLeft, setSelectedLeft] = useState(null);
-  const [matched, setMatched] = useState(new Set());
-  const [wrongPair, setWrongPair] = useState(null);
   const [lines, setLines] = useState([]);
 
   const containerRef = useRef(null);
@@ -121,192 +123,180 @@ const StudentMatchingGame = ({ questions, onComplete }) => {
   const rightRefs = useRef({});
   const onCompleteCalled = useRef(false);
 
-  const score = matched.size;
   const total = pairs.length;
-  const isComplete = score === total && total > 0;
+  // submitted = all pairs have been attempted (one attempt)
+  const submitted = total > 0 && attempts.size === total;
+  const correctCount = submitted
+    ? [...attempts.entries()].filter(([lId, rId]) => lId === rId).length
+    : 0;
 
-  // Recalculate SVG lines whenever matched set changes
+  // Draw result lines after submit
   useEffect(() => {
-    if (matched.size === 0) {
-      setLines([]);
-      return;
-    }
+    if (!submitted) { setLines([]); return; }
     requestAnimationFrame(() => {
       const container = containerRef.current;
       if (!container) return;
       const cRect = container.getBoundingClientRect();
       const newLines = [];
-      matched.forEach((id) => {
-        const leftEl = leftRefs.current[id];
-        const rightEl = rightRefs.current[id];
+      attempts.forEach((rightId, leftId) => {
+        const leftEl = leftRefs.current[leftId];
+        const rightEl = rightRefs.current[rightId];
         if (!leftEl || !rightEl) return;
         const lRect = leftEl.getBoundingClientRect();
         const rRect = rightEl.getBoundingClientRect();
         newLines.push({
-          id,
+          id: `${leftId}-${rightId}`,
           x1: lRect.right - cRect.left,
           y1: (lRect.top + lRect.bottom) / 2 - cRect.top,
           x2: rRect.left - cRect.left,
           y2: (rRect.top + rRect.bottom) / 2 - cRect.top,
+          correct: leftId === rightId,
         });
       });
       setLines(newLines);
     });
-  }, [matched]);
+  }, [submitted, attempts]);
 
-  // Notify parent once all pairs are matched
+  // Notify parent once all pairs are committed
   useEffect(() => {
-    if (isComplete && !onCompleteCalled.current) {
+    if (submitted && !onCompleteCalled.current) {
       onCompleteCalled.current = true;
-      onComplete?.(total, total);
+      onComplete?.(correctCount, total);
     }
-  }, [isComplete, onComplete, total]);
+  }, [submitted, correctCount, total, onComplete]);
 
   const handleLeftClick = (id) => {
-    if (isComplete || matched.has(id)) return;
-    setWrongPair(null);
+    if (submitted || attempts.has(id)) return;
     setSelectedLeft((prev) => (prev === id ? null : id));
   };
 
   const handleRightClick = (id) => {
-    if (isComplete || matched.has(id) || selectedLeft === null) return;
-    if (selectedLeft === id) {
-      setMatched((prev) => new Set([...prev, id]));
-      setSelectedLeft(null);
-    } else {
-      setWrongPair({ leftId: selectedLeft, rightId: id });
-      setTimeout(() => {
-        setWrongPair(null);
-        setSelectedLeft(null);
-      }, 700);
-    }
+    if (submitted || usedRights.has(id) || selectedLeft === null) return;
+    setAttempts((prev) => new Map(prev).set(selectedLeft, id));
+    setUsedRights((prev) => new Set(prev).add(id));
+    setSelectedLeft(null);
   };
 
   if (pairs.length === 0) return null;
 
   return (
-    <div
-      ref={containerRef}
-      className="relative rounded-xl bg-white p-5 shadow-sm dark:bg-gray-800"
-    >
-      {/* SVG connection lines */}
-      <svg
-        className="pointer-events-none absolute inset-0 h-full w-full"
-        style={{ zIndex: 0 }}
-      >
+    <div ref={containerRef} className="relative rounded-xl bg-white p-5 shadow-sm dark:bg-gray-800">
+      {/* SVG connection lines (shown after submit, green=correct, red=wrong) */}
+      <svg className="pointer-events-none absolute inset-0 h-full w-full" style={{ zIndex: 0 }}>
         <defs>
-          <marker
-            id="dot-sm"
-            markerWidth="6"
-            markerHeight="6"
-            refX="3"
-            refY="3"
-            orient="auto"
-          >
+          <marker id="dot-green" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
             <circle cx="3" cy="3" r="2" fill="#22c55e" />
+          </marker>
+          <marker id="dot-red" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <circle cx="3" cy="3" r="2" fill="#ef4444" />
           </marker>
         </defs>
         {lines.map((line) => (
           <line
             key={line.id}
-            x1={line.x1}
-            y1={line.y1}
-            x2={line.x2}
-            y2={line.y2}
-            stroke="#22c55e"
+            x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2}
+            stroke={line.correct ? "#22c55e" : "#ef4444"}
             strokeWidth="2"
             strokeDasharray="6 3"
             strokeLinecap="round"
-            markerEnd="url(#dot-sm)"
+            markerEnd={`url(#dot-${line.correct ? "green" : "red"})`}
           />
         ))}
       </svg>
 
       {/* Header */}
-      <div
-        className="relative mb-4 flex items-center justify-between"
-        style={{ zIndex: 1 }}
-      >
+      <div className="relative mb-4 flex items-center justify-between" style={{ zIndex: 1 }}>
         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-          Chap elementni bosing, keyin mosini tanlang
+          {submitted
+            ? "Natijalar ko'rsatilmoqda"
+            : selectedLeft !== null
+            ? "Endi o'ng tarafdagi mos juftni tanlang"
+            : "Chap elementni bosing, keyin mosini tanlang"}
         </p>
         <span className="rounded-full bg-indigo-100 px-3 py-0.5 text-sm font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-          {score}/{total}
+          {submitted ? `${correctCount}/${total}` : `${attempts.size}/${total}`}
         </span>
       </div>
 
       {/* Progress bar */}
-      <div
-        className="relative mb-4 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700"
-        style={{ zIndex: 1 }}
-      >
+      <div className="relative mb-4 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700" style={{ zIndex: 1 }}>
         <div
-          className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-green-500 transition-all duration-500"
-          style={{ width: total > 0 ? `${(score / total) * 100}%` : "0%" }}
+          className={`h-full rounded-full transition-all duration-500 ${
+            submitted
+              ? correctCount === total
+                ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                : "bg-gradient-to-r from-red-400 to-rose-500"
+              : "bg-gradient-to-r from-indigo-500 to-purple-500"
+          }`}
+          style={{ width: total > 0 ? `${((submitted ? correctCount : attempts.size) / total) * 100}%` : "0%" }}
         />
       </div>
 
-      {/* Complete banner */}
-      {isComplete && (
+      {/* Result banner — shown only after all pairs committed */}
+      {submitted && (
         <div
-          className="relative mb-4 flex items-center gap-2 rounded-xl bg-green-50 px-4 py-3 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+          className={`relative mb-4 flex items-center gap-2 rounded-xl px-4 py-3 ${
+            correctCount === total
+              ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+              : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
+          }`}
           style={{ zIndex: 1 }}
         >
-          <MdCheckCircle className="h-5 w-5 flex-shrink-0" />
+          {correctCount === total
+            ? <MdCheckCircle className="h-5 w-5 flex-shrink-0" />
+            : <MdLockOutline className="h-5 w-5 flex-shrink-0" />}
           <span className="font-semibold">
-            Barcha juftliklar to'g'ri topildi! 🎉
+            {correctCount === total
+              ? "Barcha juftliklar to'g'ri! 🎉"
+              : `${correctCount} ta to'g'ri, ${total - correctCount} ta noto'g'ri — xatolar qizil bilan.`}
           </span>
-          <span className="ml-auto flex items-center gap-1 text-xs text-green-600">
+          <span className="ml-auto flex items-center gap-1 text-xs opacity-60">
             <MdLockOutline className="h-4 w-4" /> Yakunlandi
           </span>
         </div>
       )}
 
       {/* Column headers */}
-      <div
-        className="relative mb-1 grid"
-        style={{ gridTemplateColumns: "1fr 72px 1fr", zIndex: 1 }}
-      >
-        <p className="text-center text-xs font-semibold uppercase tracking-wider text-gray-400">
-          Tushunchalar
-        </p>
+      <div className="relative mb-1 grid" style={{ gridTemplateColumns: "1fr 72px 1fr", zIndex: 1 }}>
+        <p className="text-center text-xs font-semibold uppercase tracking-wider text-gray-400">Tushunchalar</p>
         <div />
-        <p className="text-center text-xs font-semibold uppercase tracking-wider text-gray-400">
-          Ta'riflar
-        </p>
+        <p className="text-center text-xs font-semibold uppercase tracking-wider text-gray-400">Ta'riflar</p>
       </div>
 
       {/* Rows */}
       <div className="relative flex flex-col gap-3" style={{ zIndex: 1 }}>
         {leftItems.map((leftItem, rowIdx) => {
           const rightItem = rightItems[rowIdx];
+          const isLeftPaired = attempts.has(leftItem.id);
+          const isLeftCorrect = isLeftPaired && attempts.get(leftItem.id) === leftItem.id;
+          const isRightUsed = rightItem && usedRights.has(rightItem.id);
+          const rightPickedByLeftId = rightItem
+            ? [...attempts.entries()].find(([, rId]) => rId === rightItem.id)?.[0]
+            : undefined;
+          const isRightCorrect = rightPickedByLeftId !== undefined && rightPickedByLeftId === rightItem?.id;
+
           return (
-            <div
-              key={leftItem.id}
-              className="grid items-stretch"
-              style={{ gridTemplateColumns: "1fr 72px 1fr" }}
-            >
+            <div key={leftItem.id} className="grid items-stretch" style={{ gridTemplateColumns: "1fr 72px 1fr" }}>
               {/* Left button */}
               <button
-                ref={(el) => {
-                  leftRefs.current[leftItem.id] = el;
-                }}
+                ref={(el) => { leftRefs.current[leftItem.id] = el; }}
                 onClick={() => handleLeftClick(leftItem.id)}
-                disabled={matched.has(leftItem.id) || isComplete}
+                disabled={submitted || isLeftPaired}
                 className={`flex h-full items-center rounded-xl border-2 px-4 py-3 text-left text-sm font-medium transition-all duration-200 ${
-                  matched.has(leftItem.id)
+                  submitted && isLeftCorrect
                     ? "cursor-default border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300"
-                    : wrongPair?.leftId === leftItem.id
-                    ? "border-red-400 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300"
+                    : submitted && isLeftPaired
+                    ? "cursor-default border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300"
+                    : isLeftPaired
+                    ? "cursor-default border-purple-200 bg-purple-50 text-purple-800 dark:border-purple-700 dark:bg-purple-900/20 dark:text-purple-300"
                     : selectedLeft === leftItem.id
                     ? "border-indigo-500 bg-indigo-50 text-indigo-800 shadow-md ring-2 ring-indigo-300 dark:border-indigo-400 dark:bg-indigo-900/30 dark:text-indigo-200"
                     : "border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:bg-indigo-50/50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:border-indigo-500"
                 }`}
               >
                 <span className="flex items-center gap-2">
-                  {matched.has(leftItem.id) && (
-                    <MdCheckCircle className="h-4 w-4 flex-shrink-0 text-green-500" />
-                  )}
+                  {submitted && isLeftCorrect && <MdCheckCircle className="h-4 w-4 flex-shrink-0 text-green-500" />}
+                  {submitted && isLeftPaired && !isLeftCorrect && <MdCancel className="h-4 w-4 flex-shrink-0 text-red-500" />}
                   {leftItem.text}
                 </span>
               </button>
@@ -314,38 +304,33 @@ const StudentMatchingGame = ({ questions, onComplete }) => {
               <div />
 
               {/* Right button */}
-              {rightItem &&
-                (() => {
-                  const isMatched = matched.has(rightItem.id);
-                  const isWrong = wrongPair?.rightId === rightItem.id;
-                  const canClick =
-                    selectedLeft !== null && !isMatched && !isComplete;
-                  return (
-                    <button
-                      ref={(el) => {
-                        rightRefs.current[rightItem.id] = el;
-                      }}
-                      onClick={() => handleRightClick(rightItem.id)}
-                      disabled={!canClick}
-                      className={`flex h-full items-center rounded-xl border-2 px-4 py-3 text-left text-sm font-medium transition-all duration-200 ${
-                        isMatched
-                          ? "cursor-default border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300"
-                          : isWrong
-                          ? "border-red-400 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300"
-                          : canClick
-                          ? "border-gray-200 bg-white text-gray-700 hover:border-green-400 hover:bg-green-50/50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:border-green-500"
-                          : "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400 opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        {isMatched && (
-                          <MdCheckCircle className="h-4 w-4 flex-shrink-0 text-green-500" />
-                        )}
-                        {rightItem.text}
-                      </span>
-                    </button>
-                  );
-                })()}
+              {rightItem && (() => {
+                const canClick = !submitted && !isRightUsed && selectedLeft !== null;
+                return (
+                  <button
+                    ref={(el) => { rightRefs.current[rightItem.id] = el; }}
+                    onClick={() => handleRightClick(rightItem.id)}
+                    disabled={!canClick}
+                    className={`flex h-full items-center rounded-xl border-2 px-4 py-3 text-left text-sm font-medium transition-all duration-200 ${
+                      submitted && isRightCorrect
+                        ? "cursor-default border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300"
+                        : submitted && isRightUsed
+                        ? "cursor-default border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300"
+                        : isRightUsed
+                        ? "cursor-default border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-900/20 dark:text-purple-300"
+                        : canClick
+                        ? "border-gray-200 bg-white text-gray-700 hover:border-green-400 hover:bg-green-50/50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:border-green-500"
+                        : "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400 opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {submitted && isRightCorrect && <MdCheckCircle className="h-4 w-4 flex-shrink-0 text-green-500" />}
+                      {submitted && isRightUsed && !isRightCorrect && <MdCancel className="h-4 w-4 flex-shrink-0 text-red-500" />}
+                      {rightItem.text}
+                    </span>
+                  </button>
+                );
+              })()}
             </div>
           );
         })}
