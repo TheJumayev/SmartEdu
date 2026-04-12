@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+﻿import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import ApiCall from "../../../config";
 import {
@@ -11,10 +11,10 @@ import {
   MdRefresh,
   MdSearch,
 } from "react-icons/md";
-import { FiAward, FiUsers, FiTrendingUp } from "react-icons/fi";
+import { FiAward, FiUsers, FiTrendingUp, FiFilter } from "react-icons/fi";
 import { TASK_TYPES } from "./AiTask";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// в”Ђв”Ђв”Ђ Helpers в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 const getGradeInfo = (percent) => {
   if (percent >= 90) return { label: "A'lo", color: "text-green-700 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/30" };
@@ -23,8 +23,8 @@ const getGradeInfo = (percent) => {
   return { label: "Qoniqarsiz", color: "text-red-700 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/30" };
 };
 
-const ProgressBar = ({ value, max }) => {
-  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+const ProgressBar = ({ value }) => {
+  const pct = Math.min(100, Math.max(0, value));
   const color =
     pct >= 90 ? "from-green-400 to-emerald-500" :
     pct >= 70 ? "from-blue-400 to-indigo-500" :
@@ -43,7 +43,7 @@ const ProgressBar = ({ value, max }) => {
   );
 };
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// в”Ђв”Ђв”Ђ Main Page в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 const TaskResultsPage = () => {
   const { taskId } = useParams();
@@ -56,6 +56,7 @@ const TaskResultsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState("all");
 
   const isTest = task?.type === "TEST";
   const typeInfo = TASK_TYPES.find((t) => t.key === task?.type) || {
@@ -65,7 +66,7 @@ const TaskResultsPage = () => {
     badge: "bg-indigo-100 text-indigo-700",
   };
 
-  // ── Fetch task if not in state ──────────────────────────────────────────────
+  // в”Ђв”Ђ Fetch task if not in state в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   useEffect(() => {
     if (!task && taskId) {
       ApiCall(`/api/v1/task/${taskId}`, "GET")
@@ -74,12 +75,11 @@ const TaskResultsPage = () => {
     }
   }, [taskId, task]);
 
-  // ── Fetch results ───────────────────────────────────────────────────────────
+  // в”Ђв”Ђ Fetch results в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   const fetchResults = async () => {
     setLoading(true);
     setError("");
     try {
-      // TEST results come from StudentAnswer; others from TaskResult
       const endpoint = isTest
         ? `/api/v1/test/task/${taskId}/results`
         : `/api/v1/task/results/task/${taskId}`;
@@ -93,31 +93,45 @@ const TaskResultsPage = () => {
     }
   };
 
-  // Refetch when task type is known
   useEffect(() => {
     if (taskId && task) fetchResults();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId, task?.type]);
 
-  // ── Stats ───────────────────────────────────────────────────────────────────
-  const stats = useMemo(() => {
-    if (results.length === 0) return null;
-    const percents = results.map((r) => {
-      if (isTest) return r.score ?? (r.total > 0 ? Math.round((r.correct / r.total) * 100) : 0);
-      return r.percent ?? 0;
+  // в”Ђв”Ђ Unique groups from results в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+  const groups = useMemo(() => {
+    const map = new Map();
+    results.forEach((r) => {
+      if (r.groupId && !map.has(r.groupId)) {
+        map.set(r.groupId, r.groupName || r.groupId);
+      }
     });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [results]);
+
+  // в”Ђв”Ђ Filtered by group + search в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+  const groupFiltered = useMemo(() =>
+    selectedGroupId === "all"
+      ? results
+      : results.filter((r) => r.groupId === selectedGroupId),
+    [results, selectedGroupId]
+  );
+
+  const filtered = groupFiltered.filter((r) =>
+    (r.studentName || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  // в”Ђв”Ђ Stats вЂ” reactive to group filter в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+  const stats = useMemo(() => {
+    if (groupFiltered.length === 0) return null;
+    const percents = groupFiltered.map((r) => r.score ?? 0);
     const avg = Math.round(percents.reduce((a, b) => a + b, 0) / percents.length);
     const max = Math.max(...percents);
     const passing = percents.filter((p) => p >= 50).length;
-    return { avg, max, passing, total: results.length };
-  }, [results, isTest]);
+    return { avg, max, passing, total: groupFiltered.length };
+  }, [groupFiltered]);
 
-  const filtered = results.filter((r) => {
-    const name = (r.studentName || "").toLowerCase();
-    return name.includes(search.toLowerCase());
-  });
-
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // в”Ђв”Ђ Render в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   return (
     <div className="space-y-6">
       {/* Back */}
@@ -129,9 +143,7 @@ const TaskResultsPage = () => {
       </button>
 
       {/* Header */}
-      <div
-        className={`rounded-2xl bg-gradient-to-r ${typeInfo.gradient} p-6 text-white shadow-lg`}
-      >
+      <div className={`rounded-2xl bg-gradient-to-r ${typeInfo.gradient} p-6 text-white shadow-lg`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white/20">
@@ -141,9 +153,7 @@ const TaskResultsPage = () => {
               <p className="text-sm font-medium text-white/70">Natijalar</p>
               <h1 className="text-2xl font-bold">{task?.title || "Yuklanmoqda..."}</h1>
               {task && (
-                <span
-                  className={`mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${typeInfo.badge}`}
-                >
+                <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${typeInfo.badge}`}>
                   {typeInfo.icon} {typeInfo.label}
                 </span>
               )}
@@ -166,7 +176,37 @@ const TaskResultsPage = () => {
         </div>
       )}
 
-      {/* Stats cards */}
+      {/* Group filter tabs */}
+      {groups.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <FiFilter className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <button
+            onClick={() => setSelectedGroupId("all")}
+            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+              selectedGroupId === "all"
+                ? "bg-indigo-600 text-white shadow"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
+            }`}
+          >
+            Barcha guruhlar
+          </button>
+          {groups.map((g) => (
+            <button
+              key={g.id}
+              onClick={() => setSelectedGroupId(g.id)}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                selectedGroupId === g.id
+                  ? "bg-indigo-600 text-white shadow"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
+              }`}
+            >
+              {g.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Stats cards вЂ” updates with group filter */}
       {stats && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -206,10 +246,14 @@ const TaskResultsPage = () => {
 
       {/* Table */}
       <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        {/* Table header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-700">
           <h2 className="font-semibold text-gray-900 dark:text-white">
             Talabalar natijalari
+            {selectedGroupId !== "all" && (
+              <span className="ml-2 text-sm font-normal text-indigo-600 dark:text-indigo-400">
+                вЂ” {groups.find((g) => g.id === selectedGroupId)?.name}
+              </span>
+            )}
           </h2>
           <div className="relative">
             <MdSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -239,85 +283,65 @@ const TaskResultsPage = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-700">
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    #
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Talaba
-                  </th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">#</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Talaba</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Guruh</th>
                   {isTest && (
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                      To'g'ri / Jami
-                    </th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">To'g'ri / Jami</th>
                   )}
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Ball
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Baho
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Sana
-                  </th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Ball</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Baho</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Sana</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {filtered.map((r, idx) => {
-                  const percent = isTest
-                    ? (r.score ?? (r.total > 0 ? Math.round((r.correct / r.total) * 100) : 0))
-                    : (r.percent ?? 0);
+                  const percent = r.score ?? 0;
                   const grade = getGradeInfo(percent);
                   const submittedAt = r.submittedAt || r.completedAt;
-                  const studentName = r.studentName
-                    || r.student?.fullName
-                    || `Talaba ${idx + 1}`;
+                  const studentName = r.studentName || `Talaba ${idx + 1}`;
+                  const groupLabel = r.groupName || "вЂ”";
 
                   return (
                     <tr
                       key={r.id || idx}
                       className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30"
                     >
-                      <td className="px-5 py-4 text-sm font-medium text-gray-400">
-                        {idx + 1}
-                      </td>
+                      <td className="px-5 py-4 text-sm font-medium text-gray-400">{idx + 1}</td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2.5">
                           <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
                             {studentName.charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {studentName}
-                          </span>
+                          <span className="font-medium text-gray-900 dark:text-white">{studentName}</span>
                         </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                          {groupLabel}
+                        </span>
                       </td>
                       {isTest && (
                         <td className="px-5 py-4 text-sm text-gray-700 dark:text-gray-300">
-                          <span className="font-semibold text-gray-900 dark:text-white">
-                            {r.correct ?? 0}
-                          </span>
+                          <span className="font-semibold text-gray-900 dark:text-white">{r.correct ?? 0}</span>
                           <span className="text-gray-400"> / {r.total ?? "?"}</span>
                         </td>
                       )}
                       <td className="px-5 py-4 min-w-[160px]">
-                        <ProgressBar value={percent} max={100} />
+                        <ProgressBar value={percent} />
                       </td>
                       <td className="px-5 py-4">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${grade.bg} ${grade.color}`}
-                        >
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${grade.bg} ${grade.color}`}>
                           {grade.label}
                         </span>
                       </td>
                       <td className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">
                         {submittedAt
                           ? new Date(submittedAt).toLocaleDateString("uz-UZ", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
+                              day: "2-digit", month: "2-digit", year: "numeric",
+                              hour: "2-digit", minute: "2-digit",
                             })
-                          : "—"}
+                          : "вЂ”"}
                       </td>
                     </tr>
                   );

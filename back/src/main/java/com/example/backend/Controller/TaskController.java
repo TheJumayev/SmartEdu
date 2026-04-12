@@ -137,9 +137,28 @@ public class TaskController {
     /**
      * O'qituvchi uchun — vazifa bo'yicha barcha talabalar natijalari
      * GET /api/v1/task/results/task/{taskId}
+     * Returns: List<StudentResultDTO> with groupId/groupName included.
      */
     @GetMapping("/results/task/{taskId}")
-    public ResponseEntity<List<TaskResult>> getResultsByTask(@PathVariable UUID taskId) {
-        return ResponseEntity.ok(taskService.getResultsByTask(taskId));
+    public ResponseEntity<List<com.example.backend.DTO.StudentResultDTO>> getResultsByTask(@PathVariable UUID taskId) {
+        List<com.example.backend.Entity.TaskResult> list = taskService.getResultsByTask(taskId);
+        List<com.example.backend.DTO.StudentResultDTO> dtos = list.stream().map(r -> {
+            com.example.backend.Entity.Student st = r.getStudent();
+            com.example.backend.Entity.Groups g = st != null ? st.getGroups() : null;
+            String studentName = st != null ? st.getFullName() : null;
+            return com.example.backend.DTO.StudentResultDTO.builder()
+                    .id(r.getId())
+                    .studentId(st != null ? st.getId() : null)
+                    .studentName(studentName)
+                    .score(r.getPercent())
+                    .correct(r.getCorrect())
+                    .total(r.getTotal())
+                    .submittedAt(r.getCompletedAt())
+                    .groupId(g != null ? g.getId() : null)
+                    .groupName(g != null ? g.getName() : null)
+                    .type(r.getType() != null ? r.getType().name() : null)
+                    .build();
+        }).toList();
+        return ResponseEntity.ok(dtos);
     }
 }
