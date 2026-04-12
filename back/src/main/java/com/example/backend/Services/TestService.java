@@ -1,10 +1,12 @@
 package com.example.backend.Services;
 
 import com.example.backend.DTO.SubmitTestDTO;
+import com.example.backend.Entity.Student;
 import com.example.backend.Entity.StudentAnswer;
 import com.example.backend.Entity.Task;
 import com.example.backend.Entity.TaskQuestion;
 import com.example.backend.Repository.StudentAnswerRepo;
+import com.example.backend.Repository.StudentRepo;
 import com.example.backend.Repository.TaskRepo;
 import com.example.backend.Services.AiServise.GeminiService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +24,7 @@ public class TestService {
 
     private final TaskRepo taskRepo;
     private final StudentAnswerRepo studentAnswerRepo;
+    private final StudentRepo studentRepo;
     private final GeminiService geminiService;
     private final ObjectMapper objectMapper;
 
@@ -88,6 +91,11 @@ public class TestService {
             answersJson = objectMapper.writeValueAsString(studentAnswers);
         } catch (Exception ignored) {}
 
+        // Resolve student name for teacher results view
+        String studentName = studentRepo.findById(dto.getStudentId())
+                .map(Student::getFullName)
+                .orElse("Noma'lum talaba");
+
         // Upsert: if student already submitted, update
         StudentAnswer sa = studentAnswerRepo
                 .findByStudentIdAndTaskId(dto.getStudentId(), dto.getTaskId())
@@ -96,6 +104,7 @@ public class TestService {
                         .task(task)
                         .build());
 
+        sa.setStudentName(studentName);
         sa.setScore(score);
         sa.setCorrect(correct);
         sa.setTotal(total);
@@ -117,6 +126,11 @@ public class TestService {
     /** Returns previous result for a student-task pair, or empty. */
     public Optional<StudentAnswer> getPreviousResult(UUID taskId, UUID studentId) {
         return studentAnswerRepo.findByStudentIdAndTaskId(studentId, taskId);
+    }
+
+    /** Returns all student results for a task (teacher view). */
+    public List<StudentAnswer> getTaskResults(UUID taskId) {
+        return studentAnswerRepo.findByTaskId(taskId);
     }
 
     // ── AI Feedback ──────────────────────────────────────────────────────────

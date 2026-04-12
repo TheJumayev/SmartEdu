@@ -12,6 +12,7 @@ import {
   MdBook,
   MdExpandMore,
   MdExpandLess,
+  MdBarChart,
 } from "react-icons/md";
 import { TASK_TYPES, MatchingGame, CrosswordGame, QuestionCard } from "./AiTask";
 
@@ -364,11 +365,23 @@ const LessonAiTaskDetail = () => {
                       </p>
                     </div>
                   </div>
-                  {expandedIds[task.id] ? (
-                    <MdExpandLess className="h-5 w-5 flex-shrink-0 text-gray-400" />
-                  ) : (
-                    <MdExpandMore className="h-5 w-5 flex-shrink-0 text-gray-400" />
-                  )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/teacher/task-results/${task.id}`, { state: { task } });
+                      }}
+                      className="flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50"
+                    >
+                      <MdBarChart className="h-4 w-4" />
+                      Natijalar
+                    </button>
+                    {expandedIds[task.id] ? (
+                      <MdExpandLess className="h-5 w-5 flex-shrink-0 text-gray-400" />
+                    ) : (
+                      <MdExpandMore className="h-5 w-5 flex-shrink-0 text-gray-400" />
+                    )}
+                  </div>
                 </button>
 
                 {expandedIds[task.id] && (

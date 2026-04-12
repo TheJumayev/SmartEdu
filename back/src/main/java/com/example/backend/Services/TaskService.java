@@ -107,4 +107,12 @@ public class TaskService {
     public Optional<TaskResult> checkResult(UUID taskId, UUID studentId) {
         return taskResultRepo.findByTaskIdAndStudentId(taskId, studentId);
     }
+
+    /**
+     * O'qituvchi uchun — vazifa bo'yicha barcha talabalar natijalari (non-TEST)
+     * GET /api/v1/task/results/task/{taskId}
+     */
+    public List<TaskResult> getResultsByTask(UUID taskId) {
+        return taskResultRepo.findByTaskId(taskId);
+    }
 }

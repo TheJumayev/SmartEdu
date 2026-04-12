@@ -1,12 +1,17 @@
 package com.example.backend.Controller;
 
+import com.example.backend.DTO.StudentResultDTO;
 import com.example.backend.DTO.SubmitTestDTO;
+import com.example.backend.Entity.Groups;
+import com.example.backend.Entity.Student;
 import com.example.backend.Entity.StudentAnswer;
+import com.example.backend.Repository.StudentRepo;
 import com.example.backend.Services.TestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,12 +23,11 @@ import java.util.UUID;
 public class TestController {
 
     private final TestService testService;
+    private final StudentRepo studentRepo;
 
     /**
      * Submit test answers.
      * POST /api/v1/test/submit
-     * Body: { taskId, studentId, answers: { "questionUUID": "A" } }
-     * Returns: { score, correct, total, breakdown, feedback? }
      */
     @PostMapping("/submit")
     public ResponseEntity<Map<String, Object>> submit(@RequestBody SubmitTestDTO dto) {
@@ -46,13 +50,36 @@ public class TestController {
     }
 
     /**
-     * Get all results for a task (for teacher view).
+     * Get all results for a task (teacher view).
      * GET /api/v1/test/task/{taskId}/results
+     * Returns: List<StudentResultDTO> with groupId/groupName included.
      */
     @GetMapping("/task/{taskId}/results")
-    public ResponseEntity<?> getTaskResults(@PathVariable UUID taskId) {
-        // Delegate to repo via service — placeholder for teacher dashboard
-        Optional<StudentAnswer> dummy = testService.getPreviousResult(taskId, UUID.randomUUID());
-        return ResponseEntity.ok(Map.of("message", "Use /result/{taskId}/{studentId} per student"));
+    public ResponseEntity<List<StudentResultDTO>> getTaskResults(@PathVariable UUID taskId) {
+        List<StudentAnswer> answers = testService.getTaskResults(taskId);
+        List<StudentResultDTO> dtos = answers.stream().map(a -> {
+            UUID groupId = null;
+            String groupName = null;
+            Optional<Student> student = studentRepo.findById(a.getStudentId());
+            if (student.isPresent() && student.get().getGroups() != null) {
+                Groups g = student.get().getGroups();
+                groupId = g.getId();
+                groupName = g.getName();
+            }
+            return StudentResultDTO.builder()
+                    .id(a.getId())
+                    .studentId(a.getStudentId())
+                    .studentName(a.getStudentName())
+                    .score(a.getScore())
+                    .correct(a.getCorrect())
+                    .total(a.getTotal())
+                    .feedback(a.getFeedback())
+                    .submittedAt(a.getSubmittedAt())
+                    .groupId(groupId)
+                    .groupName(groupName)
+                    .type("TEST")
+                    .build();
+        }).toList();
+        return ResponseEntity.ok(dtos);
     }
 }
