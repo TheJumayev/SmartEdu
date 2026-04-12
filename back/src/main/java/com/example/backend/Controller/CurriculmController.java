@@ -2,6 +2,8 @@ package com.example.backend.Controller;
 
 import com.example.backend.DTO.CurriculmDTO;
 import com.example.backend.Entity.Curriculm;
+import com.example.backend.Entity.Groups;
+import com.example.backend.Entity.Subjects;
 import com.example.backend.Entity.User;
 import com.example.backend.Repository.CurriculmRepo;
 import com.example.backend.Repository.GroupsRepo;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,6 +34,17 @@ public class CurriculmController {
 
     @PostMapping
     public ResponseEntity<CurriculmDTO> create(@RequestBody CurriculmDTO dto) {
+        List<UUID> groupIds = dto.getGroupsIds();
+        if (groupIds == null || groupIds.isEmpty()) {
+            groupIds = dto.getGroupsId() != null ? List.of(dto.getGroupsId()) : new ArrayList<>();
+        }
+
+        List<Groups> groupsList = new ArrayList<>();
+        for (UUID gid : groupIds) {
+            groupsList.add(groupsRepo.findById(gid)
+                    .orElseThrow(() -> new RuntimeException("Group not found: " + gid)));
+        }
+
         Curriculm curriculm = Curriculm.builder()
                 .name(dto.getName())
                 .description(dto.getDescription())
@@ -38,14 +52,11 @@ public class CurriculmController {
                         .orElseThrow(() -> new RuntimeException("User not found")) : null)
                 .subjects(dto.getSubjectsId() != null ? subjectsRepo.findById(dto.getSubjectsId())
                         .orElseThrow(() -> new RuntimeException("Subject not found")) : null)
-                .groups(dto.getGroupsId() != null ? groupsRepo.findById(dto.getGroupsId())
-                        .orElseThrow(() -> new RuntimeException("Group not found")) : null)
+                .groups(groupsList)
                 .createAt(dto.getCreateAt() != null ? dto.getCreateAt() : LocalDate.now())
                 .build();
 
-        Curriculm saved = curriculumRepo.save(curriculm);
-        CurriculmDTO result = mapToCurriculmDTO(saved);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(mapToCurriculmDTO(curriculumRepo.save(curriculm)));
     }
 
     @PutMapping("/{id}")
@@ -56,36 +67,33 @@ public class CurriculmController {
         Curriculm curriculm = curriculumRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Curriculm not found with id: " + id));
 
-        if (dto.getName() != null) {
-            curriculm.setName(dto.getName());
-        }
-
-        if (dto.getDescription() != null) {
-            curriculm.setDescription(dto.getDescription());
-        }
-
+        if (dto.getName() != null) curriculm.setName(dto.getName());
+        if (dto.getDescription() != null) curriculm.setDescription(dto.getDescription());
         if (dto.getUserId() != null) {
             curriculm.setUser(userRepo.findById(dto.getUserId())
                     .orElseThrow(() -> new RuntimeException("User not found")));
         }
-
         if (dto.getSubjectsId() != null) {
             curriculm.setSubjects(subjectsRepo.findById(dto.getSubjectsId())
                     .orElseThrow(() -> new RuntimeException("Subject not found")));
         }
 
-        if (dto.getGroupsId() != null) {
-            curriculm.setGroups(groupsRepo.findById(dto.getGroupsId())
-                    .orElseThrow(() -> new RuntimeException("Group not found")));
+        List<UUID> groupIds = dto.getGroupsIds();
+        if (groupIds == null || groupIds.isEmpty()) {
+            groupIds = dto.getGroupsId() != null ? List.of(dto.getGroupsId()) : null;
+        }
+        if (groupIds != null && !groupIds.isEmpty()) {
+            List<Groups> groupsList = new ArrayList<>();
+            for (UUID gid : groupIds) {
+                groupsList.add(groupsRepo.findById(gid)
+                        .orElseThrow(() -> new RuntimeException("Group not found: " + gid)));
+            }
+            curriculm.setGroups(groupsList);
         }
 
-        if (dto.getCreateAt() != null) {
-            curriculm.setCreateAt(dto.getCreateAt());
-        }
+        if (dto.getCreateAt() != null) curriculm.setCreateAt(dto.getCreateAt());
 
-        Curriculm updated = curriculumRepo.save(curriculm);
-        CurriculmDTO result = mapToCurriculmDTO(updated);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(mapToCurriculmDTO(curriculumRepo.save(curriculm)));
     }
 
     @GetMapping("/{id}")
@@ -129,15 +137,21 @@ public class CurriculmController {
     }
 
     private CurriculmDTO mapToCurriculmDTO(Curriculm curriculm) {
-        return new CurriculmDTO(
-                curriculm.getId(),
-                curriculm.getName(),
-                curriculm.getDescription(),
-                curriculm.getUser() != null ? curriculm.getUser().getId() : null,
-                curriculm.getSubjects() != null ? curriculm.getSubjects().getId() : null,
-                curriculm.getGroups() != null ? curriculm.getGroups().getId() : null,
-                curriculm.getCreateAt()
-        );
+        CurriculmDTO dto = new CurriculmDTO();
+        dto.setId(curriculm.getId());
+        dto.setName(curriculm.getName());
+        dto.setDescription(curriculm.getDescription());
+        dto.setUserId(curriculm.getUser() != null ? curriculm.getUser().getId() : null);
+        dto.setSubjectsId(curriculm.getSubjects() != null ? curriculm.getSubjects().getId() : null);
+
+        List<Groups> groups = curriculm.getGroups();
+        if (groups != null && !groups.isEmpty()) {
+            List<UUID> ids = groups.stream().map(Groups::getId).toList();
+            dto.setGroupsIds(ids);
+            dto.setGroupsId(ids.get(0)); // first group for backward compat
+        }
+        dto.setCreateAt(curriculm.getCreateAt());
+        return dto;
     }
 }
 

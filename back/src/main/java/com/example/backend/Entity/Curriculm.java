@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -25,7 +26,12 @@ public class Curriculm {
     private User user;
     @ManyToOne
     private Subjects subjects;
-    @ManyToOne
-    private Groups groups;
+    @ManyToMany
+    @JoinTable(
+            name = "curriculm_groups",
+            joinColumns = @JoinColumn(name = "curriculm_id"),
+            inverseJoinColumns = @JoinColumn(name = "groups_id")
+    )
+    private List<Groups> groups;
     private LocalDate createAt;
 }
