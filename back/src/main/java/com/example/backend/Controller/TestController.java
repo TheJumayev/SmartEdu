@@ -51,8 +51,6 @@ public class TestController {
      */
     @GetMapping("/task/{taskId}/results")
     public ResponseEntity<?> getTaskResults(@PathVariable UUID taskId) {
-        // Delegate to repo via service — placeholder for teacher dashboard
-        Optional<StudentAnswer> dummy = testService.getPreviousResult(taskId, UUID.randomUUID());
-        return ResponseEntity.ok(Map.of("message", "Use /result/{taskId}/{studentId} per student"));
+        return ResponseEntity.ok(testService.getTaskResults(taskId));
     }
 }

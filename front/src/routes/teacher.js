@@ -7,6 +7,7 @@ import TeacherCurriculumDetail from "../views/teacher/curriculum/CurriculumDetai
 import AiTaskPage from "views/teacher/ai-task/AiTask";
 import LessonAiTaskPage from "views/teacher/ai-task/LessonAiTask";
 import LessonAiTaskDetail from "views/teacher/ai-task/LessonAiTaskDetail";
+import TaskResultsPage from "views/teacher/ai-task/TaskResultsPage";
 
 import {
     MdHome,
@@ -81,6 +82,12 @@ export const teacherDetailRoutes = [
         path: "ai-task",
         icon: <MdAutoAwesome className="h-6 w-6" />,
         component: <AiTaskPage />,
+    },
+    {
+        name: "Topshiriq Natijalari",
+        layout: "/teacher",
+        path: "task-results/:taskId",
+        component: <TaskResultsPage />,
     },
 ];
 

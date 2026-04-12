@@ -36,6 +36,9 @@ public class StudentAnswer {
     @Column(columnDefinition = "TEXT")
     private String answersJson;
 
+    /** Full name of the student (snapshot at submission time) */
+    private String studentName;
+
     /** AI-generated feedback in Uzbek */
     @Column(columnDefinition = "TEXT")
     private String feedback;

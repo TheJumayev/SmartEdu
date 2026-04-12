@@ -133,4 +133,13 @@ public class TaskController {
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.ok(null));
     }
+
+    /**
+     * O'qituvchi uchun — vazifa bo'yicha barcha talabalar natijalari
+     * GET /api/v1/task/results/task/{taskId}
+     */
+    @GetMapping("/results/task/{taskId}")
+    public ResponseEntity<List<TaskResult>> getResultsByTask(@PathVariable UUID taskId) {
+        return ResponseEntity.ok(taskService.getResultsByTask(taskId));
+    }
 }
