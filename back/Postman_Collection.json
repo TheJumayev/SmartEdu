@@ -1,0 +1,157 @@
+{
+  "info": {
+    "_postman_id": "task-api-collection",
+    "name": "Student Vazifalarini Olish API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Dars Bo'yicha Vazifalar",
+      "item": [
+        {
+          "name": "Barcha Vazifalarni Olish",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "YOUR_ACCESS_TOKEN",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/v1/task/lesson/{{lessonId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "v1", "task", "lesson", "{{lessonId}}"]
+            },
+            "description": "Muayyan dars uchun barcha vazifalarni qaytaradi"
+          }
+        },
+        {
+          "name": "Tasdiqlanmagan Vazifalarni Olish",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "YOUR_ACCESS_TOKEN",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/v1/task/lesson/{{lessonId}}/unapproved",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "v1", "task", "lesson", "{{lessonId}}", "unapproved"]
+            },
+            "description": "FAQAT tasdiqlanmagan vazifalarni qaytaradi"
+          }
+        }
+      ]
+    },
+    {
+      "name": "O'qituvchi Vazifalairi",
+      "item": [
+        {
+          "name": "O'qituvchi Bo'yicha Vazifalarni Olish",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "YOUR_ACCESS_TOKEN",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/v1/task/teacher/{{teacherId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "v1", "task", "teacher", "{{teacherId}}"]
+            },
+            "description": "Muayyan o'qituvchi tomonidan yaratilgan barcha vazifalarni qaytaradi"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vaziafa Detallar",
+      "item": [
+        {
+          "name": "Vaziafani ID Bo'yicha Olish",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "YOUR_ACCESS_TOKEN",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/v1/task/{{taskId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "v1", "task", "{{taskId}}"]
+            },
+            "description": "Muayyan ID'li vaziafaning to'liq ma'lumotlarini qaytaradi"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Yangi Vazifa Yaratish",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "YOUR_ACCESS_TOKEN",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Python Asoslari - Test\",\n  \"type\": \"TEST\",\n  \"approved\": false,\n  \"questions\": [\n    {\n      \"questionText\": \"Python nima?\",\n      \"type\": \"MULTIPLE_CHOICE\",\n      \"options\": [\"Dasturlash tili\", \"Ilon turi\", \"Kitob nomi\"],\n      \"correctAnswer\": \"Dasturlash tili\"\n    }\n  ]\n}\n"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/v1/task/save/{{userId}}/{{lessonId}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "v1", "task", "save", "{{userId}}", "{{lessonId}}"]
+        },
+        "description": "Yangi vazifa yaratadi"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "lessonId",
+      "value": "123e4567-e89b-12d3-a456-426614174000"
+    },
+    {
+      "key": "taskId",
+      "value": "123e4567-e89b-12d3-a456-426614174000"
+    },
+    {
+      "key": "teacherId",
+      "value": "223e4567-e89b-12d3-a456-426614174001"
+    },
+    {
+      "key": "userId",
+      "value": "223e4567-e89b-12d3-a456-426614174001"
+    }
+  ]
+}
+
