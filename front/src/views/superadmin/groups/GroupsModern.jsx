@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ApiCall from "../../../config";
-import { MdAdd, MdEdit, MdDelete, MdSearch, MdClose, MdArrowForward } from "react-icons/md";
+import {
+  MdAdd,
+  MdEdit,
+  MdDelete,
+  MdSearch,
+  MdClose,
+  MdArrowForward,
+} from "react-icons/md";
 
 const GroupsModern = () => {
   const navigate = useNavigate();
@@ -20,6 +27,18 @@ const GroupsModern = () => {
   useEffect(() => {
     fetchGroups();
   }, []);
+
+  // Modal ochilganda body scrollni bloklash
+  useEffect(() => {
+    if (showForm) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [showForm]);
 
   const fetchGroups = async () => {
     try {
@@ -96,7 +115,7 @@ const GroupsModern = () => {
             👥 Guruhlar
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            {groups.length} ta guruhi
+            {groups.length} ta guruh
           </p>
         </div>
         <button
@@ -108,7 +127,7 @@ const GroupsModern = () => {
           className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:shadow-blue-500/50"
         >
           <MdAdd className="h-5 w-5" />
-          Yangi guruhi
+          Yangi guruh
         </button>
       </div>
 
@@ -131,86 +150,6 @@ const GroupsModern = () => {
         />
       </div>
 
-      {/* Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowForm(false)}>
-          <div
-            className="relative w-full max-w-md space-y-6 rounded-2xl border border-gray-200 bg-white p-8 shadow-2xl dark:border-gray-700 dark:bg-gray-800"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowForm(false)}
-              className="absolute top-4 right-4 rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-            >
-              <MdClose className="h-6 w-6" />
-            </button>
-
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {editingId ? "Guruhni tahrirlash" : "Yangi guruhi yaratish"}
-            </h2>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Guruhi nomi
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                  placeholder="Guruhi nomi kiriting"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Tavsif
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                  placeholder="Tavsif kiriting"
-                  rows="3"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Semestr nomi
-                </label>
-                <input
-                  type="text"
-                  value={formData.semesterName}
-                  onChange={(e) => setFormData({ ...formData, semesterName: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                  placeholder="Masalan: 1-semestr (ixtiyoriy)"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 font-semibold text-white shadow-lg transition-all hover:shadow-blue-500/50 disabled:opacity-50"
-                >
-                  {loading ? "Saqlanmoqda..." : "Saqlash"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 rounded-lg border border-gray-300 px-4 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  Bekor qilish
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Empty State */}
       {filteredGroups.length === 0 && !loading && (
         <div className="rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 p-12 text-center dark:border-gray-600 dark:bg-gray-800/50">
@@ -227,25 +166,25 @@ const GroupsModern = () => {
           {filteredGroups.map((group) => (
             <div
               key={group.id}
-              className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-lg hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500 cursor-pointer"
+              className="group cursor-pointer rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:border-blue-300 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500"
               onClick={() => navigate(`/superadmin/groups/${group.id}`)}
             >
               <div className="mb-4">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <h3 className="text-lg font-bold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
                   {group.name}
                 </h3>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                <p className="line-clamp-2 mt-2 text-sm text-gray-600 dark:text-gray-400">
                   {group.description || "Tavsif mavjud emas"}
                 </p>
               </div>
 
-              <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEdit(group);
                   }}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-100 px-3 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-100 px-3 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
                 >
                   <MdEdit className="h-4 w-4" />
                   Tahrirlash
@@ -255,7 +194,7 @@ const GroupsModern = () => {
                     e.stopPropagation();
                     handleDelete(group.id);
                   }}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
                 >
                   <MdDelete className="h-4 w-4" />
                   O'chirish
@@ -274,6 +213,71 @@ const GroupsModern = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Modal - To'liq markazda va scroll yo'q */}
+      {showForm && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="bg-black/50 fixed inset-0 z-[9999]"
+            onClick={() => setShowForm(false)}
+          />
+
+          {/* Modal Container */}
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <div
+              className="relative w-full max-w-md space-y-6 rounded-2xl border border-gray-200 bg-white p-8 shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowForm(false)}
+                className="absolute right-4 top-4 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+              >
+                <MdClose className="h-6 w-6" />
+              </button>
+
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {editingId ? "Guruhni tahrirlash" : "Yangi guruh yaratish"}
+              </h2>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Guruh nomi
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    required
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    placeholder="Guruh nomini kiriting"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 font-semibold text-white shadow-lg transition-all hover:shadow-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {loading ? "Saqlanmoqda..." : "Saqlash"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="flex-1 rounded-lg border border-gray-300 px-4 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    Bekor qilish
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
