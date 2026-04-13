@@ -17,6 +17,7 @@ public class TaskQuestion {
     @GeneratedValue
     private UUID id;
 
+    @Column(columnDefinition = "TEXT")
     private String question;
 
     private String optionA;

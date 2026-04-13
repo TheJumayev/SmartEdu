@@ -9,23 +9,25 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Task yaratish / yangilash uchun Request DTO.
+ * POST /api/v1/task/save/{userId}/{lessonId}
+ */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 public class TaskDTO {
-    // Create uchun
-    private UUID userId;
-    private UUID lessonId;
 
-    // Response uchun
-    private UUID id;
+    /** Vazifa sarlavhasi */
     private String title;
+
+    /** Vazifa turi: TEST, ORAL, CROSSWORD, TABLE, MATCHING, CONTINUE_TEXT, ESSAY, PRACTICAL, DIAGRAM */
     private TaskType type;
-    private boolean approved;
-    private String teacherName;
-    private UUID teacherId;
-    private String lessonName;
-    private UUID lessonId_response;
+
+    /** Bu vazifani ko'rishi mumkin bo'lgan o'qituvchilar ID-lari (ixtiyoriy) */
+    private List<UUID> sharedTeacherIds;
+
+    /** Savollar ro'yxati (TEST va MATCHING uchun) */
     private List<QuestionDTO> questions;
 }

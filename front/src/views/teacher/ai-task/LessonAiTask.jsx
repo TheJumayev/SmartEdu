@@ -94,13 +94,15 @@ const LessonAiTaskPage = () => {
           {TASK_TYPES.map((t) => (
             <button
               key={t.key}
-              onClick={() =>
-                navigate(`/teacher/lesson-ai/${lessonId}/${t.key}`, {
-                  state: { lesson },
-                })
-              }
-              disabled={!hasAttachments}
-              className={`flex items-center gap-3 rounded-xl px-5 py-4 text-left font-medium shadow-sm transition-all duration-200 ${hasAttachments
+              onClick={() => {
+                if (!t.soon && hasAttachments) {
+                  navigate(`/teacher/lesson-ai/${lessonId}/${t.key}`, {
+                    state: { lesson },
+                  });
+                }
+              }}
+              disabled={t.soon || !hasAttachments}
+              className={`flex items-center gap-3 rounded-xl px-5 py-4 text-left font-medium shadow-sm transition-all duration-200 ${!t.soon && hasAttachments
                 ? `bg-gradient-to-r ${t.gradient} ${t.hoverGradient} text-white hover:shadow-md active:scale-[0.98]`
                 : "cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500"
                 }`}
@@ -108,8 +110,15 @@ const LessonAiTaskPage = () => {
               <span className="flex-shrink-0">{t.icon}</span>
               <div>
                 <p className="font-bold leading-tight">{t.label}</p>
-                <p className="text-xs font-normal opacity-80">{t.desc}</p>
+                <p className="text-xs font-normal opacity-80">
+                  {t.soon ? "Tez orada" : t.desc}
+                </p>
               </div>
+              {t.soon && (
+                <span className="absolute right-3 top-3 rounded-full bg-black/20 px-2 py-0.5 text-[10px] text-white">
+                  Soon
+                </span>
+              )}
             </button>
           ))}
         </div>
