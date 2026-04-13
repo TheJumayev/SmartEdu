@@ -9,32 +9,43 @@ import {
 } from "react-icons/fi";
 import { RiMoonFill, RiSunFill } from "react-icons/ri";
 import { MdPerson } from "react-icons/md";
-import ApiCall from "../../../config";
 
 const TeacherNavbar = (props) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { onOpenSidenav, brandText } = props;
+  const { onOpenSidenav } = props;
+
   const [darkmode, setDarkmode] = useState(false);
   const [user, setUser] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
 
+  // ✅ FIX: user load qilish
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    } else {
+      setUser({ name: "O'qituvchi" });
+    }
+  }, []);
 
   const logOut = () => {
     localStorage.clear();
     navigate("/admin/login");
   };
 
-  if (user === null && location.pathname !== "/admin/login") {
+  // ❗ faqat login page da yashirinadi
+  if (location.pathname === "/admin/login") {
     return null;
   }
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <nav className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900 xl:ml-64">
+      <div className=" max-w-6xl px-4 sm:px-6 lg:">
         <div className="flex h-16 items-center justify-between gap-4">
-          {/* Left Section */}
+          
+          {/* LEFT */}
           <div className="flex items-center gap-4">
             <button
               onClick={onOpenSidenav}
@@ -49,13 +60,13 @@ const TeacherNavbar = (props) => {
                   <span className="text-sm font-bold text-white">🎓</span>
                 </div>
                 <span className="text-lg font-bold text-gray-900 dark:text-white">
-                 Smart edu
+                  Smart edu
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Center: Search */}
+          {/* SEARCH */}
           <div className="hidden flex-1 md:flex md:max-w-xs">
             <div className="relative w-full">
               <FiSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -69,12 +80,14 @@ const TeacherNavbar = (props) => {
             </div>
           </div>
 
-          {/* Right Section */}
+          {/* RIGHT */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Bell */}
             <button className="inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">
               <FiBell className="h-5 w-5" />
             </button>
 
+            {/* Dark mode */}
             <button
               onClick={() => {
                 if (darkmode) {
@@ -96,7 +109,7 @@ const TeacherNavbar = (props) => {
 
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
 
-            {/* Profile Dropdown */}
+            {/* PROFILE */}
             <div className="relative">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -112,6 +125,7 @@ const TeacherNavbar = (props) => {
 
               {isProfileOpen && (
                 <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                  
                   <div className="border-b border-gray-200 px-4 py-3 dark:border-gray-700">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {user?.name}
@@ -124,32 +138,34 @@ const TeacherNavbar = (props) => {
                   <Link
                     to="/teacher/profile"
                     onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                    className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                     <MdPerson className="h-4 w-4" />
                     Profil
                   </Link>
 
-                  <button className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+                  <button className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
                     <FiSettings className="h-4 w-4" />
                     Sozlamalar
                   </button>
 
-                  <div className="border-t border-gray-200 dark:border-gray-700">
+                  <div className="border-t">
                     <button
                       onClick={() => {
                         logOut();
                         setIsProfileOpen(false);
                       }}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-gray-700"
+                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-gray-700"
                     >
                       <FiLogOut className="h-4 w-4" />
                       Chiqish
                     </button>
                   </div>
+
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </div>
