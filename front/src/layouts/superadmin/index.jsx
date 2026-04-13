@@ -244,8 +244,8 @@ function AllRecommendationsModal({ recommendations, onClose }) {
           </div>
           <div className="flex gap-2">
             {[
-              { key: "all", label: "Barcha", color: "gray" },
-              { key: "high", label: "🏆 Yuqori", color: "emerald" },
+              { key: "all", label: "Barcha", color: "green" },
+              { key: "high", label: "🏆 Yuqori", color: "blue" },
               { key: "medium", label: "📘 O'rtacha", color: "blue" },
               { key: "low", label: "📖 Past", color: "red" }
             ].map(f => (

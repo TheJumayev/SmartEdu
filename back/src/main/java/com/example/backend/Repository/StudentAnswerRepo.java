@@ -14,4 +14,6 @@ public interface StudentAnswerRepo extends JpaRepository<StudentAnswer, UUID> {
     List<StudentAnswer> findByTaskId(UUID taskId);
 
     List<StudentAnswer> findByStudentId(UUID studentId);
+
+    List<StudentAnswer> findByStudentIdIn(List<UUID> ids);
 }

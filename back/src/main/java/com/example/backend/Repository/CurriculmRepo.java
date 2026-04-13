@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface CurriculmRepo extends JpaRepository<Curriculm, UUID> {
     List<Curriculm> findByUserId(UUID userId);
+    List<Curriculm> findByGroupsId(UUID groupId);
 }

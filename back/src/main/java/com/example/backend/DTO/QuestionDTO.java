@@ -1,13 +1,18 @@
 package com.example.backend.DTO;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class QuestionDTO {
 
     private String question;
+
+    // CONTINUE_TEXT: AI returns "prefix" — mapped to "question" in post-processing
+    private String prefix;
 
     // OPTIONAL (важно!)
     private String optionA;

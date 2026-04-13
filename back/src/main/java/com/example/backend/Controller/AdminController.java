@@ -3,6 +3,7 @@ package com.example.backend.Controller;
 import com.example.backend.DTO.UserDTO;
 import com.example.backend.Entity.Role;
 import com.example.backend.Entity.User;
+import com.example.backend.Enums.UserRoles;
 import com.example.backend.Repository.RoleRepo;
 import com.example.backend.Repository.UserRepo;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +55,32 @@ public class AdminController {
         return ResponseEntity.ok(toDTO(saved));
     }
 
+    /**
+     * Barcha o'qituvchilarni olish (ROLE_TEACHER).
+     * GET /api/v1/admin/users/teachers
+     */
+    @GetMapping("/teachers")
+    public ResponseEntity<List<UserDTO>> getTeachers() {
+        List<UserDTO> list = userRepo.findByRoleName(UserRoles.ROLE_TEACHER)
+                .stream()
+                .map(this::toDTO)
+                .toList();
+        return ResponseEntity.ok(list);
+    }
+
+    /**
+     * Barcha adminlarni olish (ROLE_ADMIN).
+     * GET /api/v1/admin/users/admins
+     */
+    @GetMapping("/admins")
+    public ResponseEntity<List<UserDTO>> getAdmins() {
+        List<UserDTO> list = userRepo.findByRoleName(UserRoles.ROLE_ADMIN)
+                .stream()
+                .map(this::toDTO)
+                .toList();
+        return ResponseEntity.ok(list);
+    }
+
     // GET ALL
     @GetMapping
     public ResponseEntity<List<UserDTO>> getAll() {
@@ -64,8 +91,7 @@ public class AdminController {
     // GET BY ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getById(@PathVariable UUID id) {
-        User user = userRepo.findById(id)
-                .orElse(null);
+        User user = userRepo.findById(id).orElse(null);
         if (user == null) {
             return ResponseEntity.badRequest().body("User topilmadi");
         }
@@ -109,13 +135,16 @@ public class AdminController {
 
     // Entity -> DTO
     private UserDTO toDTO(User user) {
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setPhone(user.getPhone());
-        dto.setName(user.getName());
-        dto.setRoleIds(user.getRoles() != null
-                ? user.getRoles().stream().map(Role::getId).toList()
-                : List.of());
-        return dto;
+        return UserDTO.builder()
+                .id(user.getId())
+                .phone(user.getPhone())
+                .name(user.getName())
+                .roleIds(user.getRoles() != null
+                        ? user.getRoles().stream().map(Role::getId).toList()
+                        : List.of())
+                .roleNames(user.getRoles() != null
+                        ? user.getRoles().stream().map(r -> r.getName().name()).toList()
+                        : List.of())
+                .build();
     }
 }

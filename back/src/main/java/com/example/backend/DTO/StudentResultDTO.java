@@ -21,6 +21,12 @@ public class StudentResultDTO {
     private UUID studentId;
     private String studentName;
 
+    /** The task this result belongs to */
+    private UUID taskId;
+    private String taskTitle;
+    private String lessonName;
+    private String teacherName;
+
     /** Percentage score 0-100 */
     private int score;
     private int correct;

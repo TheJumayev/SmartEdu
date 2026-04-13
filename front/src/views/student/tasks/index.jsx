@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ApiCall from "../../../config";
 import {
@@ -75,24 +75,58 @@ const TASK_TYPE_MAP = {
 };
 
 // ── TaskCard ─────────────────────────────────────────────────────────────────
-const TaskCard = ({ task, onClick }) => {
+const TaskCard = ({ task, onClick, doneResult }) => {
   const typeInfo = TASK_TYPE_MAP[task.type] || {
     label: task.type,
     icon: <MdAssignment className="h-4 w-4" />,
     badge: "bg-gray-100 text-gray-700",
   };
 
+  const isDone = Boolean(doneResult);
+  const percent = doneResult?.percent;
+  const scoreColor =
+    percent === undefined
+      ? ""
+      : percent >= 80
+      ? "text-green-600 dark:text-green-400"
+      : percent >= 60
+      ? "text-amber-600 dark:text-amber-400"
+      : "text-red-600 dark:text-red-400";
+
   return (
     <div
       onClick={() => onClick(task)}
-      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800"
+      className={`group relative cursor-pointer overflow-hidden rounded-2xl border bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:bg-gray-800 ${
+        isDone
+          ? percent !== undefined && percent < 60
+            ? "border-red-200 dark:border-red-800/50"
+            : "border-green-200 dark:border-green-800/50"
+          : "border-gray-200 dark:border-gray-700"
+      }`}
     >
+      {/* Done ribbon */}
+      {isDone && (
+        <div
+          className={`absolute right-0 top-0 flex items-center gap-1 rounded-bl-xl px-2.5 py-1 text-xs font-bold ${
+            percent !== undefined && percent < 60
+              ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+              : "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+          }`}
+        >
+          <MdCheckCircle className="h-3.5 w-3.5" />
+          Bajarilgan
+          {percent !== undefined && (
+            <span className="ml-1 font-black">{percent}%</span>
+          )}
+        </div>
+      )}
+
       {/* Hover shine */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:from-blue-900/10 dark:to-indigo-900/10" />
 
       <div className="relative">
         {/* Header */}
-        <div className="mb-3 flex items-start justify-between gap-2">
+        <div className={`mb-3 flex items-start justify-between gap-2 ${isDone ? "pr-24" : ""}`}>
           <h3 className="text-base font-semibold leading-snug text-gray-900 dark:text-white line-clamp-2">
             {task.title}
           </h3>
@@ -131,7 +165,28 @@ const TaskCard = ({ task, onClick }) => {
           </p>
         </div>
 
-        {/* Status */}
+        {/* Score progress bar (shown only when done) */}
+        {isDone && percent !== undefined && (
+          <div className="mt-3">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${
+                  percent >= 80
+                    ? "bg-gradient-to-r from-green-500 to-emerald-400"
+                    : percent >= 60
+                    ? "bg-gradient-to-r from-amber-400 to-orange-400"
+                    : "bg-gradient-to-r from-red-500 to-rose-400"
+                }`}
+                style={{ width: `${Math.min(percent, 100)}%` }}
+              />
+            </div>
+            <p className={`mt-1 text-xs font-semibold ${scoreColor}`}>
+              {doneResult.correct ?? "?"}/{doneResult.total ?? "?"} to'g'ri
+            </p>
+          </div>
+        )}
+
+        {/* Status row */}
         <div className="mt-4 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             {task.approved ? (
@@ -150,8 +205,14 @@ const TaskCard = ({ task, onClick }) => {
               </>
             )}
           </div>
-          <button className="rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:shadow-md active:scale-95">
-            Ochish →
+          <button
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:shadow-md active:scale-95 ${
+              isDone
+                ? "bg-gradient-to-r from-gray-500 to-gray-600"
+                : "bg-gradient-to-r from-blue-500 to-indigo-600"
+            }`}
+          >
+            {isDone ? "Ko'rish" : "Ochish →"}
           </button>
         </div>
       </div>
@@ -162,6 +223,31 @@ const TaskCard = ({ task, onClick }) => {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const StudentTasksPage = () => {
   const navigate = useNavigate();
+
+  const studentId = localStorage.getItem("studentId");
+
+  // Re-read localStorage on every mount so fresh completions are visible
+  // (useMemo would cache across navigations; useState+useEffect re-runs on remount)
+  const [doneMap, setDoneMap] = useState({});
+  const buildDoneMap = useCallback(() => {
+    const map = {};
+    if (!studentId) return map;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(`student_task_done_${studentId}_`)) {
+        try {
+          const val = JSON.parse(localStorage.getItem(key));
+          // Use String() to avoid type-mismatch between UUID string and task.id
+          if (val?.taskId) map[String(val.taskId)] = val;
+        } catch {}
+      }
+    }
+    return map;
+  }, [studentId]);
+
+  useEffect(() => {
+    setDoneMap(buildDoneMap());
+  }, [buildDoneMap]); // runs on every mount — picks up completions made in TaskDetail
 
   const [lessons, setLessons] = useState([]);
   const [selectedLesson, setSelectedLesson] = useState(null);
@@ -383,6 +469,7 @@ const StudentTasksPage = () => {
                       key={task.id}
                       task={task}
                       onClick={handleTaskClick}
+                      doneResult={doneMap[String(task.id)] || null}
                     />
                   ))}
                 </div>

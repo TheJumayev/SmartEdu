@@ -14,7 +14,8 @@ import {
   MdExpandLess,
   MdBarChart,
 } from "react-icons/md";
-import { TASK_TYPES, MatchingGame, CrosswordGame, QuestionCard } from "./AiTask";
+import { TASK_TYPES, MatchingGame, CrosswordGame, QuestionCard, TablePreview } from "./AiTask";
+import { ContinueTextPreview } from "./ContinueTextGame";
 
 const LessonAiTaskDetail = () => {
   const { lessonId, taskType } = useParams();
@@ -165,6 +166,12 @@ const LessonAiTaskDetail = () => {
     const questions = task.questions || [];
     if (task.type === "MATCHING") return <MatchingGame questions={questions} />;
     if (task.type === "CROSSWORD") return <CrosswordGame questions={questions} showAnswers={true} />;
+    if (task.type === "CONTINUE_TEXT") return <ContinueTextPreview questions={questions} />;
+    if (task.type === "TABLE") {
+      const tableData = questions[0]?.question ||
+        (task.columns ? JSON.stringify({ columns: task.columns, rows: task.rows, answers: task.answers }) : null);
+      return <TablePreview tableData={tableData} showAnswers={true} />;
+    }
     return (
       <div className="space-y-3">
         {questions.map((q, idx) => (
