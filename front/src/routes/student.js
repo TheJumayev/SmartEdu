@@ -2,10 +2,14 @@ import MainDashboardStudent from "views/student/dashboard";
 import StudentProfile from "views/student/profile/index";
 import StudentTasksPage from "views/student/tasks/index";
 import StudentTaskDetail from "views/student/tasks/TaskDetail";
+import CompletedTasksPage from "views/student/completed-tasks/index";
+import WeakTopicsPage from "views/student/weak-topics/index";
 import {
   MdHome,
   MdPerson,
   MdAssignment,
+  MdCheckCircle,
+  MdTrendingDown,
 } from "react-icons/md";
 
 const routes = [
@@ -25,6 +29,24 @@ const routes = [
     path: "tasks",
     icon: <MdAssignment className="h-6 w-6" />,
     component: <StudentTasksPage />,
+    stranger: false,
+  },
+
+  {
+    name: "Bajargan vazifalarim",
+    layout: "/student",
+    path: "completed-tasks",
+    icon: <MdCheckCircle className="h-6 w-6" />,
+    component: <CompletedTasksPage />,
+    stranger: false,
+  },
+
+  {
+    name: "O'zlashtira olmagan mavzularim",
+    layout: "/student",
+    path: "weak-topics",
+    icon: <MdTrendingDown className="h-6 w-6" />,
+    component: <WeakTopicsPage />,
     stranger: false,
   },
 

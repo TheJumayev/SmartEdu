@@ -1,10 +1,13 @@
 package com.example.backend.Controller;
 
 import com.example.backend.DTO.GenerateTaskResponse;
+import com.example.backend.DTO.TeacherInsightRequestDTO;
+import com.example.backend.DTO.TeacherInsightResponseDTO;
 import com.example.backend.Entity.Student;
 import com.example.backend.Enums.TaskType;
 import com.example.backend.Repository.StudentRepo;
 import com.example.backend.Services.AiServise.AiGenerationService;
+import com.example.backend.Services.AiServise.AiTeacherInsightService;
 import com.example.backend.Services.FileReaderService.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +20,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -29,6 +33,7 @@ public class AiController {
 
     private final FileService fileService;
     private final AiGenerationService aiGenerationService;
+    private final AiTeacherInsightService aiTeacherInsightService;
     private final StudentRepo studentRepo;
 
     @PostMapping("/generate-task")
@@ -39,6 +44,18 @@ public class AiController {
     ) {
         String text = fileService.extractText(file);
         return aiGenerationService.generate(text, type, topic);
+    }
+
+    @PostMapping("/teacher-insight")
+    public ResponseEntity<?> teacherInsight(@RequestBody TeacherInsightRequestDTO request) {
+        try {
+            TeacherInsightResponseDTO response = aiTeacherInsightService.generateInsight(request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/generate-certificates/{groupId}")

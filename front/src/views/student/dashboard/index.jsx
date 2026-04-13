@@ -1,442 +1,586 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import ApiCall from "../../../config";
+import {
+  MdCheckCircle,
+  MdStars,
+  MdTrendingUp,
+  MdAssignment,
+  MdBarChart,
+  MdArrowUpward,
+  MdArrowDownward,
+} from "react-icons/md";
 
-const Dashboard = () => {
-  const [greeting, setGreeting] = useState("");
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [studentName, setStudentName] = useState("Ali Valiyev");
-  const [studentClass, setStudentClass] = useState("11-A sinf");
-  const [stats, setStats] = useState([
-    { id: 1, title: "O'zlashtirish", value: 0, target: 85, icon: "📊", color: "from-blue-500 to-blue-600", unit: "%", delay: 0 },
-    { id: 2, title: "Yakunlangan darslar", value: 0, target: 24, icon: "✅", color: "from-emerald-500 to-emerald-600", unit: "ta", delay: 100 },
-    { id: 3, title: "Ballar", value: 0, target: 3420, icon: "⭐", color: "from-amber-500 to-amber-600", unit: "ball", delay: 200 },
-    { id: 4, title: "Sertifikatlar", value: 0, target: 3, icon: "🏆", color: "from-purple-500 to-purple-600", unit: "ta", delay: 300 },
-  ]);
-  
-  const [subjects, setSubjects] = useState([
-    { id: 1, name: "Matematika", progress: 0, target: 85, score: 0, maxScore: 100, teacher: "Shahnoza Umarova", icon: "📐", color: "blue" },
-    { id: 2, name: "Informatika", progress: 0, target: 90, score: 0, maxScore: 100, teacher: "Sherzod Akbarov", icon: "💻", color: "purple" },
-    { id: 3, name: "Ingliz tili", progress: 0, target: 80, score: 0, maxScore: 100, teacher: "Zarina Karimova", icon: "🇬🇧", color: "emerald" },
-    { id: 4, name: "Fizika", progress: 0, target: 75, score: 0, maxScore: 100, teacher: "Bobur Rashidov", icon: "⚡", color: "amber" },
-    { id: 5, name: "Dasturlash", progress: 0, target: 95, score: 0, maxScore: 100, teacher: "Jasur Mirzayev", icon: "👨‍💻", color: "rose" },
-  ]);
-  
-  const [recentActivities, setRecentActivities] = useState([
-    { id: 1, action: "Matematika fanidan test topshirdingiz", score: 92, time: "2 soat oldin", icon: "📐", type: "success" },
-    { id: 2, action: "Informatika darsiga qatnashdingiz", time: "1 kun oldin", icon: "💻", type: "info" },
-    { id: 3, action: "Sertifikat bilan taqdirlandingiz", time: "3 kun oldin", icon: "🏆", type: "warning" },
-    { id: 4, action: "Yangi topshiriq qo'shildi", time: "5 kun oldin", icon: "📝", type: "info" },
-  ]);
-  
-  const [upcomingTasks, setUpcomingTasks] = useState([
-    { id: 1, title: "Matematika testi", subject: "Matematika", deadline: "2 kun", priority: "high", icon: "📐" },
-    { id: 2, title: "Informatika loyihasi", subject: "Informatika", deadline: "3 kun", priority: "medium", icon: "💻" },
-    { id: 3, title: "Ingliz tili quiz", subject: "Ingliz tili", deadline: "5 kun", priority: "low", icon: "🇬🇧" },
-  ]);
+// --- Helpers ---
 
-  useEffect(() => {
-    // Salomlashish so'zini soatga qarab belgilash
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting("Xayrli tong");
-    else if (hour < 18) setGreeting("Xayrli kun");
-    else setGreeting("Xayrli kech");
+const TYPE_LABELS = {
+  TEST: "Test",
+  MATCHING: "Juftlash",
+  CROSSWORD: "Krossvord",
+  TABLE: "Jadval",
+  CONTINUE_TEXT: "Matn davomi",
+  ESSAY: "Insho",
+  ORAL: "Og'zaki",
+  PRACTICAL: "Amaliy",
+};
 
-    // Vaqtni yangilash
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    
-    // Statistikani animatsiya bilan oshirish
-    stats.forEach((stat, index) => {
-      setTimeout(() => {
-        const interval = setInterval(() => {
-          setStats(prev => prev.map(s => {
-            if (s.id === stat.id) {
-              const newValue = Math.min(s.value + Math.ceil(s.target / 50), s.target);
-              return { ...s, value: newValue };
-            }
-            return s;
-          }));
-        }, 30);
-        return () => clearInterval(interval);
-      }, stat.delay);
-    });
-    
-    // Fanlar progressini animatsiya bilan oshirish
-    subjects.forEach((subject, index) => {
-      setTimeout(() => {
-        const interval = setInterval(() => {
-          setSubjects(prev => prev.map(s => {
-            if (s.id === subject.id) {
-              const newProgress = Math.min(s.progress + Math.ceil(s.target / 30), s.target);
-              const newScore = Math.min(s.score + Math.ceil((s.maxScore * s.target / 100) / 30), s.maxScore * s.target / 100);
-              return { ...s, progress: newProgress, score: Math.round(newScore) };
-            }
-            return s;
-          }));
-        }, 40);
-        return () => clearInterval(interval);
-      }, index * 150);
-    });
+const TYPE_COLORS = {
+  TEST:          { bg: "#6366f1", light: "#eef2ff" },
+  MATCHING:      { bg: "#f59e0b", light: "#fffbeb" },
+  CROSSWORD:     { bg: "#10b981", light: "#ecfdf5" },
+  TABLE:         { bg: "#3b82f6", light: "#eff6ff" },
+  CONTINUE_TEXT: { bg: "#8b5cf6", light: "#f5f3ff" },
+  ESSAY:         { bg: "#f43f5e", light: "#fff1f2" },
+  ORAL:          { bg: "#14b8a6", light: "#f0fdfa" },
+  PRACTICAL:     { bg: "#f97316", light: "#fff7ed" },
+};
 
-    return () => clearInterval(timer);
-  }, []);
+const scoreGrade = (s) => {
+  if (s >= 90) return { label: "A'lo",       color: "#10b981", bg: "#ecfdf5" };
+  if (s >= 75) return { label: "Yaxshi",     color: "#3b82f6", bg: "#eff6ff" };
+  if (s >= 60) return { label: "Qoniqarli",  color: "#f59e0b", bg: "#fffbeb" };
+  return            { label: "Past",         color: "#f43f5e", bg: "#fff1f2" };
+};
 
-  const formatTime = (date) => {
-    return date.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
-  };
+const fmtDate = (dt) => {
+  if (!dt) return "—";
+  const d = new Date(dt);
+  return d.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit", year: "2-digit" });
+};
 
-  const formatDate = (date) => {
-    return date.toLocaleDateString('uz-UZ', { weekday: 'long', day: 'numeric', month: 'long' });
-  };
+const fmtTime = (date) =>
+  date.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-  const getPriorityColor = (priority) => {
-    switch(priority) {
-      case 'high': return 'from-red-500 to-rose-500';
-      case 'medium': return 'from-amber-500 to-orange-500';
-      default: return 'from-emerald-500 to-teal-500';
-    }
-  };
+const fmtDateFull = (date) =>
+  date.toLocaleDateString("uz-UZ", { weekday: "long", day: "numeric", month: "long" });
+
+// --- SVG Donut Chart ---
+
+const DonutChart = ({ segments, size = 140, strokeWidth = 22 }) => {
+  const r  = (size - strokeWidth) / 2;
+  const circ = 2 * Math.PI * r;
+  const cx = size / 2;
+  const cy = size / 2;
+  const total = segments.reduce((s, seg) => s + seg.value, 0);
+  let offset = 0;
 
   return (
-    <div className="min-h-screen p-4 space-y-6 md:p-6 bg-gradient-to-br from-blue-50 via-white to-purple-50/30">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute rounded-full -top-40 -right-40 w-96 h-96 bg-gradient-to-r from-blue-200/30 via-purple-200/30 to-pink-200/30 blur-3xl animate-float-slow" />
-        <div className="absolute rounded-full -bottom-40 -left-40 w-96 h-96 bg-gradient-to-r from-cyan-200/20 to-blue-200/20 blur-3xl animate-float-slower" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-purple-200/10 to-pink-200/10 rounded-full blur-3xl animate-pulse-slow" />
-        
-        {/* Floating particles */}
-        {[...Array(15)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 rounded-full bg-blue-400/30 animate-float-particle"
-            style={{
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${5 + Math.random() * 10}s`
-            }}
-          />
-        ))}
+    <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      {total === 0 ? (
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth={strokeWidth} />
+      ) : (
+        segments.map((seg, i) => {
+          const dash = (seg.value / total) * circ;
+          const gap  = circ - dash;
+          const el = (
+            <circle
+              key={i}
+              cx={cx} cy={cy} r={r}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth={strokeWidth}
+              strokeDasharray={`${dash} ${gap}`}
+              strokeDashoffset={-offset}
+              strokeLinecap="butt"
+            />
+          );
+          offset += dash;
+          return el;
+        })
+      )}
+    </svg>
+  );
+};
+
+// --- SVG Bar Chart ---
+
+const BarChart = ({ data }) => {
+  const height   = 150;
+  const paddingL = 28;
+  const paddingB = 30;
+  const paddingT = 16;
+  const chartH   = height - paddingB - paddingT;
+  // Adaptive bar width: wider when few bars, narrower when many
+  const barW     = Math.max(14, Math.min(32, Math.floor(320 / data.length) - 8));
+  const gap      = Math.max(6, barW * 0.35);
+  const totalW   = paddingL + data.length * (barW + gap);
+  const max      = Math.max(...data.map((d) => d.value), 1);
+
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${totalW} ${height}`} preserveAspectRatio="xMinYMid meet">
+      {[0, 50, 100].map((pct) => {
+        const y = paddingT + chartH - (pct / 100) * chartH;
+        return (
+          <g key={pct}>
+            <line x1={paddingL} y1={y} x2={totalW} y2={y} stroke="#f3f4f6" strokeWidth="1" strokeDasharray={pct === 0 ? "0" : "3 3"} />
+            <text x={paddingL - 4} y={y + 3} textAnchor="end" fontSize="8" fill="#d1d5db">{pct}</text>
+          </g>
+        );
+      })}
+
+      {data.map((d, i) => {
+        const x     = paddingL + i * (barW + gap);
+        const barH  = Math.max(3, (d.value / max) * chartH);
+        const y     = paddingT + chartH - barH;
+        const grade = scoreGrade(d.value);
+        return (
+          <g key={i}>
+            {/* background column */}
+            <rect x={x} y={paddingT} width={barW} height={chartH} rx="3" ry="3" fill={grade.bg} opacity="0.5" />
+            {/* value bar */}
+            <rect x={x} y={y} width={barW} height={barH} rx="3" ry="3" fill={grade.color} opacity="0.9" />
+            <text x={x + barW / 2} y={y - 3} textAnchor="middle" fontSize="8" fill={grade.color} fontWeight="700">
+              {d.value}
+            </text>
+            <text x={x + barW / 2} y={height - paddingB + 12} textAnchor="middle" fontSize="7" fill="#9ca3af">
+              {d.label}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+// --- Sparkline ---
+
+const Sparkline = ({ values, color = "#6366f1", height = 40, width = 70 }) => {
+  if (!values || values.length < 2) return null;
+  const max   = Math.max(...values, 1);
+  const min   = Math.min(...values, 0);
+  const range = max - min || 1;
+  const pts   = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = height - ((v - min) / range) * (height - 8) - 4;
+    return `${x},${y}`;
+  });
+  const last = pts[pts.length - 1].split(",");
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <polyline
+        points={pts.join(" ")}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx={parseFloat(last[0])} cy={parseFloat(last[1])} r="3" fill={color} />
+    </svg>
+  );
+};
+
+// --- Main Dashboard ---
+
+const Dashboard = () => {
+  const navigate    = useNavigate();
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [results,   setResults]   = useState([]);
+  const [loading,   setLoading]   = useState(true);
+
+  const studentId = localStorage.getItem("studentId");
+  const fullName  = localStorage.getItem("fullName") || "Talaba";
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Xayrli tong";
+    if (h < 18) return "Xayrli kun";
+    return "Xayrli kech";
+  })();
+
+  useEffect(() => {
+    const t = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (!studentId) { setLoading(false); return; }
+    ApiCall(`/api/v1/task/results/student/${studentId}`, "GET", null)
+      .then((res) => {
+        if (!res?.error && Array.isArray(res?.data)) setResults(res.data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [studentId]);
+
+  const stats = useMemo(() => {
+    const total = results.length;
+    if (total === 0) return { total: 0, avg: 0, best: 0, worst: 0, perfect: 0, recentTrend: 0 };
+    const scores  = results.map((r) => r.score || 0);
+    const avg     = Math.round(scores.reduce((a, b) => a + b, 0) / total);
+    const best    = Math.max(...scores);
+    const worst   = Math.min(...scores);
+    const perfect = scores.filter((s) => s === 100).length;
+    const sorted  = [...results].sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt));
+    const last3   = sorted.slice(-3).map((r) => r.score || 0);
+    const prev3   = sorted.slice(-6, -3).map((r) => r.score || 0);
+    const avgLast = last3.length ? last3.reduce((a, b) => a + b, 0) / last3.length : 0;
+    const avgPrev = prev3.length ? prev3.reduce((a, b) => a + b, 0) / prev3.length : 0;
+    return { total, avg, best, worst, perfect, recentTrend: Math.round(avgLast - avgPrev) };
+  }, [results]);
+
+  const distribution = useMemo(() => {
+    const c = { excellent: 0, good: 0, satisfactory: 0, poor: 0 };
+    results.forEach((r) => {
+      const s = r.score || 0;
+      if (s >= 90) c.excellent++;
+      else if (s >= 75) c.good++;
+      else if (s >= 60) c.satisfactory++;
+      else c.poor++;
+    });
+    return [
+      { label: "A'lo (≥90%)",       value: c.excellent,    color: "#10b981" },
+      { label: "Yaxshi (75-89%)",   value: c.good,         color: "#3b82f6" },
+      { label: "Qoniqarli (60-74%)",value: c.satisfactory, color: "#f59e0b" },
+      { label: "Past (<60%)",       value: c.poor,         color: "#f43f5e" },
+    ];
+  }, [results]);
+
+  const byType = useMemo(() => {
+    const map = {};
+    results.forEach((r) => {
+      const t = r.type || "OTHER";
+      if (!map[t]) map[t] = { count: 0, totalScore: 0 };
+      map[t].count++;
+      map[t].totalScore += r.score || 0;
+    });
+    return Object.entries(map).map(([type, d]) => ({
+      type,
+      label: TYPE_LABELS[type] || type,
+      count: d.count,
+      avg:   Math.round(d.totalScore / d.count),
+      color: TYPE_COLORS[type]?.bg    || "#6b7280",
+      light: TYPE_COLORS[type]?.light || "#f9fafb",
+    }));
+  }, [results]);
+
+  const chartData = useMemo(() =>
+    [...results]
+      .filter((r) => r.submittedAt)
+      .sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt))
+      .slice(-10)
+      .map((r) => ({ value: r.score || 0, label: fmtDate(r.submittedAt), type: r.type })),
+  [results]);
+
+  const sparkValues   = chartData.map((d) => d.value);
+
+  const recentResults = useMemo(() =>
+    [...results]
+      .filter((r) => r.submittedAt)
+      .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+      .slice(0, 5),
+  [results]);
+
+  return (
+    <div className="min-h-screen space-y-6 p-4 md:p-6 bg-gray-50 dark:bg-gray-900">
+
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-2xl shadow-lg">
+            <span>👨‍🎓</span>
+            <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 dark:text-indigo-400">Talaba paneli</p>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">{greeting}, {fullName}!</h1>
+            <p className="text-xs text-gray-400">{fmtDateFull(currentTime)} · {fmtTime(currentTime)}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate("/student/tasks")}
+          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-90 transition-opacity"
+        >
+          <MdAssignment className="h-5 w-5" />
+          Topshiriqlarga o'tish
+        </button>
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl">
-        {/* Welcome Section with Animation */}
-        <div className="mb-8 overflow-hidden">
-          <div className="transition-all duration-700 transform-gpu animate-slide-down">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-start gap-4">
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
+        </div>
+      ) : results.length === 0 ? (
+        <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white p-16 text-center dark:border-gray-700 dark:bg-gray-800">
+          <div className="mb-4 text-5xl">📭</div>
+          <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">Hali topshiriqlar bajarilmagan</p>
+          <p className="mt-1 text-sm text-gray-400">Topshiriqlarni bajaring — statistika shu yerda ko'rinadi</p>
+          <button
+            onClick={() => navigate("/student/tasks")}
+            className="mt-5 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
+            Topshiriqlarga o'tish →
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* 4 Summary Cards */}
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+
+            {/* Total */}
+            <div className="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 dark:bg-indigo-900/40">
+                  <MdCheckCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <Sparkline values={sparkValues} color="#6366f1" width={64} height={36} />
+              </div>
+              <p className="text-3xl font-black text-gray-900 dark:text-white">{stats.total}</p>
+              <p className="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">Bajarilgan topshiriqlar</p>
+            </div>
+
+            {/* Avg score */}
+            <div className="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/40">
+                  <MdBarChart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                {stats.recentTrend !== 0 && (
+                  <span
+                    className="flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-bold"
+                    style={{
+                      backgroundColor: stats.recentTrend > 0 ? "#ecfdf5" : "#fff1f2",
+                      color:           stats.recentTrend > 0 ? "#10b981" : "#f43f5e",
+                    }}
+                  >
+                    {stats.recentTrend > 0
+                      ? <MdArrowUpward className="h-3 w-3" />
+                      : <MdArrowDownward className="h-3 w-3" />}
+                    {Math.abs(stats.recentTrend)}%
+                  </span>
+                )}
+              </div>
+              <p className="text-3xl font-black text-gray-900 dark:text-white">{stats.avg}%</p>
+              <p className="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">O'rtacha ball</p>
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                <div className="h-full rounded-full bg-blue-500 transition-all duration-700" style={{ width: `${stats.avg}%` }} />
+              </div>
+            </div>
+
+            {/* Best */}
+            <div className="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-900/40">
+                  <MdStars className="h-5 w-5 text-amber-500" />
+                </div>
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
+                  Eng yuqori
+                </span>
+              </div>
+              <p className="text-3xl font-black text-gray-900 dark:text-white">{stats.best}%</p>
+              <p className="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">Eng yaxshi natija</p>
+              <p className="mt-1 text-[11px] text-gray-400">Eng past: {stats.worst}%</p>
+            </div>
+
+            {/* Perfect */}
+            <div className="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/40">
+                  <MdTrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <span className="text-2xl">🏆</span>
+              </div>
+              <p className="text-3xl font-black text-gray-900 dark:text-white">{stats.perfect}</p>
+              <p className="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">100% natijalar</p>
+              <p className="mt-1 text-[11px] text-gray-400">
+                {stats.total > 0 ? Math.round((stats.perfect / stats.total) * 100) : 0}% jami topshiriqdan
+              </p>
+            </div>
+          </div>
+
+          {/* Bar Chart + Donut */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+
+            {/* Bar Chart */}
+            <div className="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800 lg:col-span-2">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-indigo-500 to-purple-500" />
+                <h2 className="font-semibold text-gray-800 dark:text-gray-100">
+                  Ball tarixi (so'nggi {chartData.length} ta)
+                </h2>
+              </div>
+              {chartData.length < 2 ? (
+                <div className="flex h-28 items-center justify-center text-sm text-gray-400">Kamida 2 ta natija kerak</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <div style={{ minWidth: Math.max(chartData.length * 36 + 32, 160) }}>
+                    <BarChart data={chartData} />
+                  </div>
+                </div>
+              )}
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[
+                  { label: "A'lo ≥90%",    color: "#10b981" },
+                  { label: "Yaxshi 75-89%", color: "#3b82f6" },
+                  { label: "Qoniq. 60-74%", color: "#f59e0b" },
+                  { label: "Past <60%",     color: "#f43f5e" },
+                ].map((l) => (
+                  <span key={l.label} className="flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
+                    {l.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Donut */}
+            <div className="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500" />
+                <h2 className="font-semibold text-gray-800 dark:text-gray-100">Ball taqsimoti</h2>
+              </div>
+              <div className="flex flex-col items-center gap-4">
                 <div className="relative">
-                  <div className="absolute inset-0 transition-all duration-500 rounded-full opacity-0 bg-gradient-to-r from-blue-400 to-purple-400 blur-xl group-hover:opacity-50" />
-                  <div className="relative flex items-center justify-center w-16 h-16 rounded-full shadow-lg md:w-20 md:h-20 bg-gradient-to-br from-blue-500 to-purple-500 animate-bounce-subtle">
-                    <span className="text-3xl md:text-4xl">👨‍🎓</span>
-                  </div>
-                  <div className="absolute w-4 h-4 border-2 border-white rounded-full -bottom-1 -right-1 bg-emerald-500 animate-pulse" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-1 h-6 rounded-full bg-gradient-to-b from-blue-500 to-purple-500" />
-                    <span className="text-xs font-medium tracking-wider text-blue-600 uppercase">Talaba paneli</span>
-                  </div>
-                  <h1 className="text-2xl font-bold text-gray-800 md:text-3xl">
-                    {greeting}, {studentName}!
-                  </h1>
-                  <p className="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">📚 {studentClass}</span>
-                    <span className="hidden w-1 h-1 bg-gray-400 rounded-full sm:inline" />
-                    <span className="flex items-center gap-1">📅 {formatDate(currentTime)}</span>
-                    <span className="hidden w-1 h-1 bg-gray-400 rounded-full sm:inline" />
-                    <span className="flex items-center gap-1">🕐 {formatTime(currentTime)}</span>
-                  </p>
-                </div>
-              </div>
-              
-              {/* Motivatonal quote */}
-              <div className="relative group">
-                <div className="absolute inset-0 transition-all duration-500 opacity-0 bg-gradient-to-r from-amber-400 to-orange-400 rounded-xl blur-lg group-hover:opacity-40" />
-                <div className="relative px-4 py-3 border shadow-sm bg-white/80 backdrop-blur-sm rounded-xl border-amber-100">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">💪</span>
-                    <p className="text-xs text-gray-600 max-w-[200px]">"Bilim - eng kuchli qurol"</p>
+                  <DonutChart segments={distribution} size={144} strokeWidth={24} />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.avg}%</p>
+                    <p className="text-[10px] text-gray-400">o'rtacha</p>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards with 3D Hover Effects */}
-        <div className="grid grid-cols-2 gap-4 mb-8 lg:grid-cols-4">
-          {stats.map((stat, index) => (
-            <div
-              key={stat.id}
-              className="relative p-4 overflow-hidden transition-all duration-500 border shadow-lg cursor-pointer group rounded-2xl bg-white/80 backdrop-blur-sm border-white/60 hover:shadow-2xl hover:-translate-y-2 animate-scale-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity duration-700`} />
-              <div className="absolute transition-all duration-700 origin-left scale-x-0 opacity-0 -inset-1 bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:opacity-100 group-hover:scale-x-100" />
-              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.color} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
-              
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-xl shadow-md transition-all duration-300 group-hover:scale-110 group-hover:rotate-6`}>
-                    {stat.icon}
-                  </div>
-                  <div className="text-xl font-bold text-gray-800">
-                    {stat.value}{stat.unit}
-                  </div>
-                </div>
-                <h3 className="mb-2 text-sm font-medium text-gray-600">{stat.title}</h3>
-                <div className="mt-2">
-                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full bg-gradient-to-r ${stat.color} transition-all duration-1000 ease-out`}
-                      style={{ width: `${(stat.value / stat.target) * 100}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="mt-2 text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  Maqsad: {stat.target}{stat.unit}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Subjects Progress Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-6 rounded-full bg-gradient-to-b from-blue-500 to-purple-500" />
-            <h2 className="font-semibold text-gray-800">Fanlar bo'yicha o'zlashtirish</h2>
-            <div className="flex gap-1 ml-2">
-              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
-              <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse delay-150" />
-              <div className="w-1.5 h-1.5 bg-pink-500 rounded-full animate-pulse delay-300" />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {subjects.map((subject, index) => (
-              <div
-                key={subject.id}
-                className="relative p-4 overflow-hidden transition-all duration-500 border shadow-md group rounded-xl bg-white/80 backdrop-blur-sm border-white/60 hover:shadow-xl hover:-translate-y-1 animate-slide-up"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className={`absolute inset-0 bg-gradient-to-br from-${subject.color}-500/5 to-${subject.color}-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br from-${subject.color}-100 to-${subject.color}-200 flex items-center justify-center text-xl transition-all duration-300 group-hover:scale-110`}>
-                    {subject.icon}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800">{subject.name}</h3>
-                    <p className="text-xs text-gray-400">{subject.teacher}</p>
-                  </div>
-                  <div className={`text-sm font-bold text-${subject.color}-600`}>
-                    {subject.score}/{subject.maxScore}
-                  </div>
-                </div>
-                
-                <div className="mb-2">
-                  <div className="flex justify-between mb-1 text-xs text-gray-500">
-                    <span>Progress</span>
-                    <span>{subject.progress}%</span>
-                  </div>
-                  <div className="w-full h-2 overflow-hidden bg-gray-100 rounded-full">
-                    <div 
-                      className={`h-full rounded-full bg-gradient-to-r from-${subject.color}-500 to-${subject.color}-600 transition-all duration-1000`}
-                      style={{ width: `${subject.progress}%` }}
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between pt-2 mt-3 border-t border-gray-100">
-                  <div className="text-xs text-gray-400">Maqsad: {subject.target}%</div>
-                  <div className="text-xs font-medium text-emerald-600">
-                    {subject.progress >= subject.target ? "✅ Bajarilgan" : "📌 Davom etmoqda"}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Activities & Upcoming Tasks */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Recent Activities */}
-          <div className="p-5 transition-all duration-500 border shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl border-white/60 hover:shadow-xl animate-slide-right">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500" />
-                <h2 className="font-semibold text-gray-800">So'nggi faoliyatlar</h2>
-              </div>
-              <div className="flex gap-1">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse delay-150" />
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse delay-300" />
-              </div>
-            </div>
-            <div className="space-y-3">
-              {recentActivities.map((activity, idx) => (
-                <div
-                  key={activity.id}
-                  className="flex items-center gap-3 p-3 transition-all duration-300 cursor-pointer group rounded-xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-transparent hover:-translate-x-1 animate-fade-in"
-                  style={{ animationDelay: `${idx * 0.1}s` }}
-                >
-                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${
-                    activity.type === 'success' ? 'from-emerald-100 to-emerald-200' :
-                    activity.type === 'warning' ? 'from-amber-100 to-amber-200' :
-                    'from-blue-100 to-blue-200'
-                  } flex items-center justify-center text-lg transition-all duration-300 group-hover:scale-110`}>
-                    {activity.icon}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-800">{activity.action}</p>
-                    <p className="text-xs text-gray-400">{activity.time}</p>
-                  </div>
-                  {activity.score && (
-                    <div className="text-sm font-bold text-emerald-600">+{activity.score}</div>
-                  )}
-                  <div className="text-gray-400 transition-all duration-300 transform translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0">
-                    →
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Upcoming Tasks */}
-          <div className="p-5 transition-all duration-500 border shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl border-white/60 hover:shadow-xl animate-slide-left">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-6 rounded-full bg-gradient-to-b from-amber-500 to-orange-500" />
-                <h2 className="font-semibold text-gray-800">Kutilayotgan topshiriqlar</h2>
-              </div>
-              <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-600">{upcomingTasks.length} ta</span>
-            </div>
-            <div className="space-y-3">
-              {upcomingTasks.map((task, idx) => (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-3 p-3 transition-all duration-300 cursor-pointer group rounded-xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-transparent hover:-translate-x-1 animate-fade-in"
-                  style={{ animationDelay: `${idx * 0.1}s` }}
-                >
-                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getPriorityColor(task.priority).replace('from-', 'from-').split(' ')[0].replace('to-', 'to-')}100 flex items-center justify-center text-lg transition-all duration-300 group-hover:scale-110`}>
-                    {task.icon}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-800">{task.title}</p>
-                    <p className="text-xs text-gray-400">{task.subject}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      task.priority === 'high' ? 'bg-red-100 text-red-600' :
-                      task.priority === 'medium' ? 'bg-amber-100 text-amber-600' :
-                      'bg-emerald-100 text-emerald-600'
-                    }`}>
-                      {task.deadline}
+                <div className="w-full space-y-2">
+                  {distribution.map((seg) => (
+                    <div key={seg.label} className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: seg.color }} />
+                        {seg.label}
+                      </span>
+                      <span className="text-xs font-bold text-gray-800 dark:text-gray-100">{seg.value} ta</span>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
-            
-            <button className="w-full py-2 mt-4 text-sm font-medium text-center text-blue-600 transition-colors hover:text-blue-700">
-              Barcha topshiriqlarni ko'rish →
-            </button>
           </div>
-        </div>
 
-        {/* Achievement Card */}
-        <div className="mt-6">
-          <div className="relative p-5 overflow-hidden transition-all duration-500 border shadow-lg group rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 backdrop-blur-sm border-amber-100/50 hover:shadow-xl hover:-translate-y-1">
-            <div className="absolute top-0 right-0 w-40 h-40 transition-all duration-700 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 blur-2xl opacity-20 group-hover:opacity-30 group-hover:scale-150" />
-            {/* <div className="relative z-10 flex flex-wrap items-center gap-4">
-              <div className="flex items-center justify-center text-2xl shadow-lg w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 animate-bounce-subtle">
-                🏆
+          {/* Task Type Breakdown */}
+          {byType.length > 0 && (
+            <div className="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-amber-500 to-orange-500" />
+                <h2 className="font-semibold text-gray-800 dark:text-gray-100">Topshiriq turi bo'yicha</h2>
               </div>
-              <div className="flex-1">
-                <h3 className="mb-1 font-semibold text-gray-800">Ajoyib! Siz 3-sertifikatga ega bo'ldingiz</h3>
-                <p className="text-sm text-gray-500">Matematika, Informatika va Ingliz tili fanlaridan sertifikatlar bilan taqdirlandingiz.</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {byType.map((t) => (
+                  <div
+                    key={t.type}
+                    className="rounded-xl border p-4 dark:border-gray-700"
+                    style={{ backgroundColor: t.light }}
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wide" style={{ color: t.color }}>
+                        {t.label}
+                      </span>
+                      <span className="rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: t.color }}>
+                        {t.count} ta
+                      </span>
+                    </div>
+                    <div className="mb-1 h-1.5 w-full overflow-hidden rounded-full bg-white/60">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${t.avg}%`, backgroundColor: t.color }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      O'rtacha: <span className="font-bold" style={{ color: t.color }}>{t.avg}%</span>
+                    </p>
+                  </div>
+                ))}
               </div>
-              <button className="px-4 py-2 text-sm font-medium text-white transition-all rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-lg hover:scale-105">
-                Sertifikatlarni ko'rish
+            </div>
+          )}
+
+          {/* Recent Results */}
+          <div className="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-indigo-500" />
+                <h2 className="font-semibold text-gray-800 dark:text-gray-100">So'nggi natijalar</h2>
+              </div>
+              <button
+                onClick={() => navigate("/student/tasks")}
+                className="text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                Barchasini ko'rish →
               </button>
-            </div> */}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 dark:border-gray-700">
+                    {["#", "Turi", "Ball", "To'g'ri/Jami", "Baho", "Sana"].map((h) => (
+                      <th key={h} className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/60">
+                  {recentResults.map((r, i) => {
+                    const grade      = scoreGrade(r.score || 0);
+                    const typeColor  = TYPE_COLORS[r.type]?.bg    || "#6b7280";
+                    const typeLight  = TYPE_COLORS[r.type]?.light || "#f9fafb";
+                    return (
+                      <tr key={r.id} className="transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-700/30">
+                        <td className="py-3 pr-2 font-medium text-gray-400">{i + 1}</td>
+                        <td className="py-3 pr-4">
+                          <span className="rounded-lg px-2.5 py-1 text-xs font-bold" style={{ backgroundColor: typeLight, color: typeColor }}>
+                            {TYPE_LABELS[r.type] || r.type || "—"}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                              <div className="h-full rounded-full" style={{ width: `${r.score || 0}%`, backgroundColor: grade.color }} />
+                            </div>
+                            <span className="font-bold" style={{ color: grade.color }}>{r.score ?? "—"}%</span>
+                          </div>
+                        </td>
+                        <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">
+                          {r.correct != null && r.total != null ? `${r.correct}/${r.total}` : "—"}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className="rounded-full px-2.5 py-0.5 text-xs font-bold" style={{ backgroundColor: grade.bg, color: grade.color }}>
+                            {grade.label}
+                          </span>
+                        </td>
+                        <td className="py-3 text-xs text-gray-400">{fmtDate(r.submittedAt)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <style>{`
-        @keyframes float-slow {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(20px, -20px) scale(1.05); }
-          66% { transform: translate(-15px, 15px) scale(0.95); }
-        }
-        
-        @keyframes float-slower {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(-25px, 15px) scale(1.08); }
-          66% { transform: translate(20px, -20px) scale(0.92); }
-        }
-        
-        @keyframes pulse-slow {
-          0%, 100% { opacity: 0.2; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(1.05); }
-        }
-        
-        @keyframes float-particle {
-          0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-          10% { opacity: 0.5; }
-          90% { opacity: 0.5; }
-          100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
-        }
-        
-        @keyframes slide-down {
-          from { opacity: 0; transform: translateY(-30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes slide-left {
-          from { opacity: 0; transform: translateX(30px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        
-        @keyframes slide-right {
-          from { opacity: 0; transform: translateX(-30px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes scale-in {
-          from { opacity: 0; transform: scale(0.9); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateX(-10px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        
-        @keyframes bounce-subtle {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-3px); }
-        }
-        
-        .animate-float-slow { animation: float-slow 15s ease-in-out infinite; }
-        .animate-float-slower { animation: float-slower 20s ease-in-out infinite; }
-        .animate-pulse-slow { animation: pulse-slow 8s ease-in-out infinite; }
-        .animate-float-particle { animation: float-particle linear infinite; }
-        .animate-slide-down { animation: slide-down 0.6s ease-out forwards; }
-        .animate-slide-left { animation: slide-left 0.6s ease-out forwards; }
-        .animate-slide-right { animation: slide-right 0.6s ease-out forwards; }
-        .animate-slide-up { animation: slide-up 0.5s ease-out forwards; opacity: 0; animation-fill-mode: forwards; }
-        .animate-scale-in { animation: scale-in 0.5s ease-out forwards; opacity: 0; animation-fill-mode: forwards; }
-        .animate-fade-in { animation: fade-in 0.4s ease-out forwards; opacity: 0; animation-fill-mode: forwards; }
-        .animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
-      `}</style>
+          {/* Motivational footer */}
+          <div
+            className="rounded-2xl p-5 text-white shadow-md"
+            style={{
+              background: stats.avg >= 85
+                ? "linear-gradient(135deg,#10b981,#059669)"
+                : stats.avg >= 65
+                ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
+                : "linear-gradient(135deg,#f59e0b,#f97316)",
+            }}
+          >
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="text-4xl">
+                {stats.avg >= 85 ? "🌟" : stats.avg >= 65 ? "💪" : "📚"}
+              </div>
+              <div>
+                <p className="text-lg font-bold">
+                  {stats.avg >= 85
+                    ? "Ajoyib natijalar! Siz juda yaxshi ishlayapsiz!"
+                    : stats.avg >= 65
+                    ? "Yaxshi harakat! Davom eting!"
+                    : "Yana qattiqroq harakat qiling, muvaffaqiyat kutmoqda!"}
+                </p>
+                <p className="text-sm opacity-80">
+                  Siz jami {stats.total} ta topshiriq bajardingiz · O'rtacha ball: {stats.avg}%
+                </p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

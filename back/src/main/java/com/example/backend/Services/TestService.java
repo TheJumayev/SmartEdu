@@ -9,6 +9,7 @@ import com.example.backend.Repository.StudentAnswerRepo;
 import com.example.backend.Repository.StudentRepo;
 import com.example.backend.Repository.TaskRepo;
 import com.example.backend.Services.AiServise.GeminiService;
+import com.example.backend.Services.StudentPerformanceService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class TestService {
     private final StudentRepo studentRepo;
     private final GeminiService geminiService;
     private final ObjectMapper objectMapper;
+    private final StudentPerformanceService studentPerformanceService;
 
     /**
      * Check answers, persist result, optionally generate AI feedback.
@@ -112,6 +114,7 @@ public class TestService {
         sa.setFeedback(feedback);
         sa.setSubmittedAt(LocalDateTime.now());
         studentAnswerRepo.save(sa);
+        studentPerformanceService.updateStudentPerformance(dto.getStudentId());
 
         // --- Build response ---
         Map<String, Object> result = new LinkedHashMap<>();

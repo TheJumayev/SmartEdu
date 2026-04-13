@@ -114,13 +114,39 @@ public class CurriculmController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<CurriculmDTO>> getByUserId(@PathVariable UUID userId) {
-        Optional<User> userOptional = userRepo.findById(userId);
+    public ResponseEntity<?> getByUserId(@PathVariable String userId) {
+        if (userId == null || userId.isBlank() || "undefined".equalsIgnoreCase(userId.trim())) {
+            return ResponseEntity.badRequest().body(java.util.Map.of(
+                    "error", "Noto'g'ri userId",
+                    "message", "userId UUID formatda bo'lishi kerak"
+            ));
+        }
+
+        UUID parsedUserId;
+        try {
+            parsedUserId = UUID.fromString(userId.trim());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of(
+                    "error", "Noto'g'ri userId",
+                    "message", "userId UUID formatda bo'lishi kerak"
+            ));
+        }
+
+        Optional<User> userOptional = userRepo.findById(parsedUserId);
         if(userOptional.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         User user = userOptional.get();
         List<Curriculm> curriculms = curriculumRepo.findByUserId(user.getId());
+        List<CurriculmDTO> dtos = curriculms.stream()
+                .map(this::mapToCurriculmDTO)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/group/{groupId}")
+    public ResponseEntity<List<CurriculmDTO>> getByGroupId(@PathVariable UUID groupId) {
+        List<Curriculm> curriculms = curriculumRepo.findByGroupsId(groupId);
         List<CurriculmDTO> dtos = curriculms.stream()
                 .map(this::mapToCurriculmDTO)
                 .toList();

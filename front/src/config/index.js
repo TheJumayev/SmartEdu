@@ -3,6 +3,11 @@ export let baseUrl;
 baseUrl = "http://localhost:8080";
 // baseUrl = "";
 
+export function isUuid(value) {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 export default function (url, method, data, param) {
   let token = localStorage.getItem("access_token");
   // const navigate = useNavigate()

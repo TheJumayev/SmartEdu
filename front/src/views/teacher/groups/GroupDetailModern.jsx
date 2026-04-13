@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ApiCall from "../../../config";
-import { MdAdd, MdEdit, MdDelete, MdSearch, MdClose, MdArrowBack, MdPerson, MdVisibility, MdVisibilityOff } from "react-icons/md";
+import { isUuid } from "../../../config";
+import { MdAdd, MdEdit, MdDelete, MdSearch, MdClose, MdArrowBack, MdPerson, MdVisibility, MdVisibilityOff, MdAutoAwesome } from "react-icons/md";
+import { FiAlertTriangle } from "react-icons/fi";
+import { jsPDF } from "jspdf";
 
 const TeacherGroupDetail = () => {
   const { groupId } = useParams();
@@ -17,7 +20,168 @@ const TeacherGroupDetail = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ fullName: "", login: "", password: "", groupsId: groupId || "" });
 
-  useEffect(() => { if (groupId) { fetchGroupDetail(); fetchStudentsByGroup(); } }, [groupId]);
+  // ── AI Insight state ──────────────────────────────────────────────────────
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [insightError, setInsightError] = useState("");
+  const [userId, setUserId] = useState(null);
+  // ── Lesson picker for AI insight ─────────────────────────────────────────
+  const [curricula, setCurricula] = useState([]);
+  const [curriculaLoading, setCurriculaLoading] = useState(false);
+  const [selectedCurricId, setSelectedCurricId] = useState("");
+  const [lessonList, setLessonList] = useState([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+  const [selectedLessonId, setSelectedLessonId] = useState("");
+  // ── Task results fetched from backend ─────────────────────────────────────
+  const [groupResults, setGroupResults] = useState([]); // StudentResultDTO[]
+
+  const fetchInsight = async () => {
+    if (students.length === 0) return;
+    setInsightLoading(true);
+    setInsightError("");
+    try {
+      const payload = {
+        lessonId: selectedLessonId || null,
+        students: students.map(buildStudentInput),
+      };
+      const res = await ApiCall("/api/v1/ai/teacher-insight", "POST", payload);
+      if (res?.error || !res?.data) {
+        const errMsg =
+          typeof res?.data === "string"
+            ? res.data
+            : res?.data?.error || res?.data?.message || "Javob kelmadi";
+        throw new Error(errMsg);
+      }
+      downloadInsightPdf(res.data);
+    } catch (err) {
+      setInsightError(err?.message || "AI tahlil olishda xatolik yuz berdi. Qayta urinib ko'ring.");
+    } finally {
+      setInsightLoading(false);
+    }
+  };
+
+  // Build student input for AI from real backend task results
+  const buildStudentInput = (student) => {
+    const results = groupResults.filter(
+      (r) => r.studentId === student.id || r.studentId === String(student.id)
+    );
+    const completedTasks = results.length;
+    const score = completedTasks > 0
+      ? Math.round(results.reduce((acc, r) => acc + (Number(r.score) || 0), 0) / completedTasks)
+      : 0;
+    return { studentId: student.id, fullName: student.fullName || "Nomsiz", score, completedTasks, averageTime: 0, strengths: [], weaknesses: [] };
+  };
+
+  const handleCurricChange = async (curricId) => {
+    setSelectedCurricId(curricId);
+    setSelectedLessonId("");
+    setLessonList([]);
+    if (!curricId) return;
+    setLessonsLoading(true);
+    try {
+      const r = await ApiCall(`/api/v1/lessons/curriculm/${curricId}`, "GET", null);
+      setLessonList(Array.isArray(r.data) ? r.data : []);
+    } catch { setLessonList([]); }
+    finally { setLessonsLoading(false); }
+  };
+
+  const downloadInsightPdf = (data) => {
+    if (!data) return;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 40;
+    const maxW = pageW - margin * 2;
+    let y = 50;
+
+    const addText = (text, opts = {}) => {
+      const { size = 11, bold = false, color = [30, 30, 30], indent = 0 } = opts;
+      doc.setFontSize(size);
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(String(text || ""), maxW - indent);
+      if (y + lines.length * size * 1.4 > doc.internal.pageSize.getHeight() - 40) {
+        doc.addPage(); y = 50;
+      }
+      doc.text(lines, margin + indent, y);
+      y += lines.length * size * 1.4 + (opts.gap ?? 4);
+    };
+
+    const addLine = (color = [220, 220, 220]) => {
+      doc.setDrawColor(...color);
+      doc.line(margin, y, pageW - margin, y);
+      y += 10;
+    };
+
+    // Title
+    addText("AI — Tahlil natijasi", { size: 18, bold: true, color: [79, 70, 229], gap: 6 });
+    addText(`Guruh: ${group?.name || "-"}   |   Sana: ${new Date().toLocaleDateString("uz-UZ")}`, { size: 10, color: [120, 120, 120], gap: 14 });
+    addLine([200, 200, 230]);
+
+    // General Feedback
+    if (data.generalFeedback) {
+      addText("Umumiy xulosa", { size: 13, bold: true, color: [55, 65, 81], gap: 6 });
+      addText(data.generalFeedback, { size: 11, color: [55, 65, 81], gap: 14 });
+      addLine();
+    }
+
+    // Top Students
+    if (data.topStudents?.length > 0) {
+      addText("Top talabalar", { size: 13, bold: true, color: [21, 128, 61], gap: 8 });
+      data.topStudents.forEach((s, i) => {
+        addText(`${i + 1}. ${s.fullName}  —  ${s.score}%`, { size: 11, bold: true, color: [21, 128, 61], gap: 3 });
+        if (s.reason) addText(s.reason, { size: 10, color: [75, 100, 75], indent: 16, gap: 3 });
+        if (s.potentialCareers?.length) addText(`Karera: ${s.potentialCareers.join(", ")}`, { size: 10, color: [99, 102, 241], indent: 16, gap: 8 });
+      });
+      y += 6;
+      addLine();
+    }
+
+    // Low Students
+    if (data.lowStudents?.length > 0) {
+      addText("Yordam kerak talabalar", { size: 13, bold: true, color: [180, 80, 20], gap: 8 });
+      data.lowStudents.forEach((s, i) => {
+        addText(`${i + 1}. ${s.fullName}  —  ${s.score}%`, { size: 11, bold: true, color: [180, 80, 20], gap: 3 });
+        (s.recommendations || []).forEach((rec, j) => {
+          addText(`${j + 1}) ${rec}`, { size: 10, color: [80, 80, 80], indent: 16, gap: 3 });
+        });
+        y += 6;
+      });
+    }
+
+    doc.save(`AI_Tahlil_${group?.name || "guruh"}_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  // Decode token to get teacher userId (needed for curricula fetch)
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      ApiCall("/api/v1/auth/decode1?token=" + token, "GET", null)
+        .then((r) => setUserId(r.data?.id))
+        .catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!groupId) return;
+    fetchGroupDetail();
+    fetchStudentsByGroup();
+    // Fetch all task results for this group
+    ApiCall(`/api/v1/task/results/group/${groupId}`, "GET", null)
+      .then((res) => setGroupResults(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setGroupResults([]));
+  }, [groupId]);
+
+  // Fetch curricula once userId is available
+  useEffect(() => {
+    if (!isUuid(userId)) return;
+    setCurriculaLoading(true);
+    ApiCall(`/api/v1/curriculums/user/${userId}`, "GET", null)
+      .then((res) => setCurricula(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setCurricula([]))
+      .finally(() => setCurriculaLoading(false));
+
+      console.log(curricula);
+      
+  }, [userId]);
   useEffect(() => { if (error || successMsg) { const t = setTimeout(() => { setError(""); setSuccessMsg(""); }, 4000); return () => clearTimeout(t); } }, [error, successMsg]);
 
   const fetchGroupDetail = async () => {
@@ -26,8 +190,10 @@ const TeacherGroupDetail = () => {
   };
 
   const fetchStudentsByGroup = async () => {
-    try { const r = await ApiCall("/api/v1/students", "GET", null); if (r?.error) { setStudents([]); return; }
-      const data = r.data || []; setStudents(Array.isArray(data) ? data.filter((s) => s.groupsId === groupId) : []); }
+    try {
+      const r = await ApiCall("/api/v1/students", "GET", null); if (r?.error) { setStudents([]); return; }
+      const data = r.data || []; setStudents(Array.isArray(data) ? data.filter((s) => s.groupsId === groupId) : []);
+    }
     catch (err) { console.error(err); setStudents([]); }
   };
 
@@ -56,9 +222,11 @@ const TeacherGroupDetail = () => {
 
   const handleDelete = async (id) => {
     if (window.confirm("Talabani o'chirishni tasdiqlaysizmi?")) {
-      try { setLoading(true); setError(""); const res = await ApiCall(`/api/v1/students/${id}`, "DELETE", null);
+      try {
+        setLoading(true); setError(""); const res = await ApiCall(`/api/v1/students/${id}`, "DELETE", null);
         if (res?.error) { setError(typeof res.data === "string" ? res.data : "O'chirishda xatolik"); return; }
-        setSuccessMsg("Talaba o'chirildi ✅"); fetchStudentsByGroup(); }
+        setSuccessMsg("Talaba o'chirildi ✅"); fetchStudentsByGroup();
+      }
       catch (err) { console.error(err); setError("O'chirishda xatolik"); } finally { setLoading(false); }
     }
   };
@@ -83,6 +251,40 @@ const TeacherGroupDetail = () => {
         </div>
         <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-2 whitespace-nowrap rounded-lg bg-gradient-to-r from-green-600 to-teal-700 px-6 py-3 font-semibold text-white shadow-lg shadow-green-500/30 transition-all hover:shadow-green-500/50"><MdAdd className="h-5 w-5" /> Yangi talaba qo'shish</button>
       </div>
+
+     
+
+      {/* ── AI Teacher Insight button ──────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={fetchInsight}
+          disabled={insightLoading || students.length === 0}
+          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-700 px-5 py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:shadow-indigo-500/50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {insightLoading ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              Tahlil qilinmoqda...
+            </>
+          ) : (
+            <>
+              <MdAutoAwesome className="h-5 w-5" />
+              🤖 AI Tahlil
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* ── AI Insight error ──────────────────────────────────────────────── */}
+      {insightError && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          <FiAlertTriangle className="h-5 w-5 flex-shrink-0" />
+          <span>{insightError}</span>
+          <button onClick={fetchInsight} className="ml-auto rounded-lg bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700">
+            Qayta urinish
+          </button>
+        </div>
+      )}
 
       {successMsg && <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-700 dark:border-green-900 dark:bg-green-900/20 dark:text-green-400">{successMsg}</div>}
       {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-900/20 dark:text-red-400">{error}</div>}
@@ -144,8 +346,8 @@ const TeacherGroupDetail = () => {
                 {filteredStudents.map((student, i) => (
                   <tr key={student.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{i + 1}</td>
-                    <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-green-500 to-teal-500 text-sm font-bold text-white">{student.fullName?.charAt(0)?.toUpperCase() || "?"}</div><div><p className="text-sm font-medium text-gray-900 dark:text-white">{student.fullName}</p><p className="text-xs text-gray-500 sm:hidden">@{student.login}</p></div></div></td>
-                    <td className="hidden whitespace-nowrap px-6 py-4 sm:table-cell"><span className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-0.5 text-sm font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">@{student.login}</span></td>
+                    <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-green-500 to-teal-500 text-sm font-bold text-white">{student.fullName?.charAt(0)?.toUpperCase() || "?"}</div><div><p className="text-sm font-medium text-gray-900 dark:text-white">{student.fullName}</p><p className="text-xs text-gray-500 sm:hidden">{student.login}</p></div></div></td>
+                    <td className="hidden whitespace-nowrap px-6 py-4 sm:table-cell"><span className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-0.5 text-sm font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">{student.login}</span></td>
                     <td className="hidden whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400 md:table-cell">{formatDate(student.createAt)}</td>
                     <td className="whitespace-nowrap px-6 py-4"><div className="flex justify-end gap-2">
                       <button onClick={() => handleEdit(student)} className="inline-flex items-center gap-1.5 rounded-lg bg-green-100 px-3 py-2 text-sm font-medium text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400"><MdEdit className="h-4 w-4" /><span className="hidden lg:inline">Tahrirlash</span></button>
