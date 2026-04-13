@@ -24,7 +24,7 @@ const TeacherSidebar = ({ open, onClose }) => {
             onClick={onClose}
             className={`group relative mx-4 mb-2 flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
               isActive
-                ? "bg-gradient-to-r from-green-500 to-teal-600 text-white shadow-lg"
+                ? "bg-gradient-to-r from-green-500 to-teal-600 text-white shadow-lg shadow-green-500/30"
                 : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
             }`}
           >
@@ -32,7 +32,7 @@ const TeacherSidebar = ({ open, onClose }) => {
             <span className="flex-1 font-medium">{route.name}</span>
 
             {isActive && (
-              <div className="absolute -right-4 top-0 h-full w-1 bg-green-500" />
+              <div className="absolute -right-4 top-0 h-full w-1 rounded-r-lg bg-gradient-to-b from-green-400 to-teal-600" />
             )}
           </Link>
         );
@@ -43,50 +43,63 @@ const TeacherSidebar = ({ open, onClose }) => {
 
   return (
     <>
-      {/* Overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 xl:hidden"
+          className="fixed inset-0 z-30 bg-black/50 xl:hidden"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 z-50 h-screen w-64 transform overflow-y-auto border-r border-gray-200 bg-white shadow-xl transition-transform duration-300 dark:border-gray-700 dark:bg-gray-900
-        ${open ? "translate-x-0" : "-translate-x-full"}
-        xl:translate-x-0`}
+        className={`fixed left-0 top-0 z-40 h-screen w-64 transform overflow-y-auto border-r border-gray-200 bg-white shadow-xl transition-transform duration-300 dark:border-gray-700 dark:bg-gray-900 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        } xl:relative xl:translate-x-0`}
       >
-        {/* Close */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 xl:hidden p-2"
+          className="absolute right-4 top-4 inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 xl:hidden"
         >
           <HiX className="h-6 w-6" />
         </button>
 
-        {/* Logo */}
-        <div className="border-b px-6 py-6">
-          <h1 className="text-lg font-bold">edu.uz</h1>
-          <p className="text-xs text-gray-500">O'qituvchi paneli</p>
+        {/* Logo Section */}
+        <div className="border-b border-gray-200 px-6 py-8 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-green-600 to-teal-600 shadow-lg">
+              <span className="text-lg font-bold text-white">🎓</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+                edu.uz
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                O'qituvchi paneli
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Menu */}
-        <div className="px-2 py-4">
-          {createLinks(routes)}
+        {/* Menu Section */}
+        <div className="space-y-2 px-2 py-6">
+          <h2 className="mb-4 px-4 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            Navigation
+          </h2>
+          <nav className="space-y-1">{createLinks(routes)}</nav>
         </div>
 
-        {/* Logout */}
-        <div className="mt-auto p-4">
+        <div className="flex-1" />
+
+        {/* Footer */}
+        <div className="border-t border-gray-200 px-4 py-4 dark:border-gray-700">
           <button
             onClick={() => {
               localStorage.clear();
               window.location.href = "/admin/login";
             }}
-            className="flex w-full items-center gap-2 text-red-600"
+            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-gray-800"
           >
-            <FiLogOut />
-            Chiqish
+            <FiLogOut className="h-5 w-5" />
+            Tizimdan chiqish
           </button>
         </div>
       </div>
