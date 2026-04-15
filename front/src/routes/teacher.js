@@ -23,14 +23,22 @@ const teacherRoutes = [
         name: "Bosh sahifa",
         layout: "/teacher",
         path: "default",
-        icon: <MdHome className="h-6 w-6" />,
+        icon: <MdHome className="w-6 h-6" />,
         component: <TeacherDashboard />,
     },
+    {
+    name: "O‘yinlar",
+    layout: "/teacher",
+    path: "games",
+    component: null,
+    icon: <i className="fas fa-gamepad"></i>,
+    },
+    
     {
         name: "Guruhlar",
         layout: "/teacher",
         path: "groups",
-        icon: <MdGroup className="h-6 w-6" />,
+        icon: <MdGroup className="w-6 h-6" />,
         component: <TeacherGroups />,
     },
 
@@ -38,7 +46,7 @@ const teacherRoutes = [
         name: "O'quv dasturlari",
         layout: "/teacher",
         path: "curriculum",
-        icon: <MdSchool className="h-6 w-6" />,
+        icon: <MdSchool className="w-6 h-6" />,
         component: <TeacherCurriculum />,
     },
 
@@ -46,7 +54,7 @@ const teacherRoutes = [
         name: "Profil",
         layout: "/teacher",
         path: "profile",
-        icon: <MdPerson className="h-6 w-6" />,
+        icon: <MdPerson className="w-6 h-6" />,
         component: <TeacherProfile />,
     },
 ];
@@ -80,7 +88,7 @@ export const teacherDetailRoutes = [
         name: "AI Topshiriq Yaratish",
         layout: "/teacher",
         path: "ai-task",
-        icon: <MdAutoAwesome className="h-6 w-6" />,
+        icon: <MdAutoAwesome className="w-6 h-6" />,
         component: <AiTaskPage />,
     },
     {

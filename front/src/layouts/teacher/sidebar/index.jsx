@@ -32,7 +32,7 @@ const TeacherSidebar = ({ open, onClose }) => {
             <span className="flex-1 font-medium">{route.name}</span>
 
             {isActive && (
-              <div className="absolute -right-4 top-0 h-full w-1 rounded-r-lg bg-gradient-to-b from-green-400 to-teal-600" />
+              <div className="absolute top-0 w-1 h-full rounded-r-lg -right-4 bg-gradient-to-b from-green-400 to-teal-600" />
             )}
           </Link>
         );
@@ -57,15 +57,15 @@ const TeacherSidebar = ({ open, onClose }) => {
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 xl:hidden"
+          className="absolute inline-flex items-center justify-center p-2 text-gray-600 rounded-lg right-4 top-4 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 xl:hidden"
         >
-          <HiX className="h-6 w-6" />
+          <HiX className="w-6 h-6" />
         </button>
 
         {/* Logo Section */}
-        <div className="border-b border-gray-200 px-6 py-8 dark:border-gray-700">
+        <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-green-600 to-teal-600 shadow-lg">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg shadow-lg bg-gradient-to-br from-green-600 to-teal-600">
               <span className="text-lg font-bold text-white">🎓</span>
             </div>
             <div>
@@ -80,8 +80,8 @@ const TeacherSidebar = ({ open, onClose }) => {
         </div>
 
         {/* Menu Section */}
-        <div className="space-y-2 px-2 py-6">
-          <h2 className="mb-4 px-4 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        <div className="px-2 py-6 space-y-2">
+          <h2 className="px-4 mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase dark:text-gray-400">
             Navigation
           </h2>
           <nav className="space-y-1">{createLinks(routes)}</nav>
@@ -90,15 +90,15 @@ const TeacherSidebar = ({ open, onClose }) => {
         <div className="flex-1" />
 
         {/* Footer */}
-        <div className="border-t border-gray-200 px-4 py-4 dark:border-gray-700">
+        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={() => {
               localStorage.clear();
               window.location.href = "/admin/login";
             }}
-            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-gray-800"
+            className="flex items-center w-full gap-3 px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 dark:text-red-400 dark:hover:bg-gray-800"
           >
-            <FiLogOut className="h-5 w-5" />
+            <FiLogOut className="w-5 h-5" />
             Tizimdan chiqish
           </button>
         </div>
