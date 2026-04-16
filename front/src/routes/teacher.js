@@ -58,13 +58,7 @@ const teacherRoutes = [
     icon: <i className="fas fa-gamepad"></i>,
   },
 
-  {
-  name: "Theme",
-  layout: "/teacher",
-  path: "theme",
-  component: null,
-  icon: <i className="fas fa-palette"></i>,
-},
+
 ];
 
 export const teacherDetailRoutes = [
